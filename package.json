@@ -1,0 +1,32 @@
+{
+  "name": "hapi-limitd",
+  "version": "0.0.0",
+  "description": "A limitd plugin for hapi.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dschenkelman/hapi-limitd.git"
+  },
+  "keywords": [
+    "limitd",
+    "hapi"
+  ],
+  "author": "Auth0",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dschenkelman/hapi-limitd/issues"
+  },
+  "homepage": "https://github.com/dschenkelman/hapi-limitd",
+  "dependencies": {
+    "boom": "^2.6.1",
+    "limitd": "^2.0.0",
+    "joi": "^6.0.0"
+  },
+  "devDependencies": {
+    "chai": "^2.1.0",
+    "mocha": "^2.1.0"
+  }
+}
