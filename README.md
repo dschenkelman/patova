@@ -1,4 +1,4 @@
-# patova
+# patova ![](https://travis-ci.org/dschenkelman/patova.svg?branch=master)
 A [limitd](https://github.com/auth0/limitd) plug-in for hapi.js
 
 ## Install
