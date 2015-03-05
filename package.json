@@ -1,5 +1,5 @@
 {
-  "name": "hapi-limitd",
+  "name": "patova",
   "version": "0.0.0",
   "description": "A limitd plugin for hapi.js",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/dschenkelman/hapi-limitd.git"
+    "url": "git://github.com/dschenkelman/patova.git"
   },
   "keywords": [
     "limitd",
@@ -17,9 +17,9 @@
   "author": "Auth0",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/dschenkelman/hapi-limitd/issues"
+    "url": "https://github.com/dschenkelman/patova/issues"
   },
-  "homepage": "https://github.com/dschenkelman/hapi-limitd",
+  "homepage": "https://github.com/dschenkelman/patova",
   "dependencies": {
     "boom": "^2.6.1",
     "limitd": "^4.0.0",
