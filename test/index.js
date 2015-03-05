@@ -247,7 +247,8 @@ describe('with server', function(){
     });
   });
 
-  describe('when limitd responds non conformant', function(){
+
+  describe('with limitd running', function(){
     var address;
     before(function(done){
       limitServer.start(function(r){
@@ -256,34 +257,68 @@ describe('with server', function(){
       });
     });
 
-    before(function(done){
-      server.start({
-        type: 'empty',
-        address: { host: address.address, port: address.port },
-        extractKey: function(request, done){
-          done(null, 'notImportant');
-        },
-        event: 'onPostAuth',
-        onError: function(err, reply){
-          return reply(Boom.wrap(err, 500));
-        }
-      }, done);
+    after(limitServer.stop);
+
+    describe('when limitd responds non conformant', function(){
+      before(function(done){
+        server.start({
+          type: 'empty',
+          address: { host: address.address, port: address.port },
+          extractKey: function(request, done){
+            done(null, 'notImportant');
+          },
+          event: 'onPostAuth',
+          onError: function(err, reply){
+            return reply(Boom.wrap(err, 500));
+          }
+        }, done);
+      });
+
+      after(server.stop);
+
+      it('should send response with 429 and headers', function(done){
+        var request = { method: 'POST', url: '/users', payload: { } };
+        server.inject(request, function (res) {
+          var body = JSON.parse(res.payload);
+          var headers = res.headers;
+
+          expect(body.statusCode).to.equal(429);
+          expect(body.error).to.equal('Too Many Requests');
+
+          expect(headers['x-ratelimit-limit']).to.equal(0);
+          expect(headers['x-ratelimit-remaining']).to.equal(0);
+          expect(headers['x-ratelimit-reset']).to.equal(0);
+
+          done();
+        });
+      });
     });
 
-    it('should send response with 429 and headers', function(done){
-      var request = { method: 'POST', url: '/users', payload: { } };
-      server.inject(request, function (res) {
-        var body = JSON.parse(res.payload);
-        var headers = res.headers;
+    describe('when limitd responds conformant', function(){
+      before(function(done){
+        server.start({
+          type: 'users',
+          address: { host: address.address, port: address.port },
+          extractKey: function(request, done){
+            done(null, 'key');
+          },
+          event: 'onPostAuth',
+          onError: function(err, reply){
+            return reply(Boom.wrap(err, 500));
+          }
+        }, done);
+      });
 
-        expect(body.statusCode).to.equal(429);
-        expect(body.error).to.equal('Too Many Requests');
+      after(server.stop);
 
-        expect(headers['x-ratelimit-limit']).to.equal(0);
-        expect(headers['x-ratelimit-remaining']).to.equal(0);
-        expect(headers['x-ratelimit-reset']).to.equal(0);
+      it('should send response with 200 if limit is not passed', function(done){
+        var request = { method: 'POST', url: '/users', payload: { } };
+        server.inject(request, function (res) {
+          expect(res.statusCode).to.equal(200);
+          expect(res.payload).to.equal('created');
 
-        done();
+          done();
+        });
       });
     });
   });

@@ -25,5 +25,5 @@ exports.start = function(done){
 };
 
 exports.stop = function () {
-  server.close();
+  server.stop();
 };

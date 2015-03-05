@@ -22,7 +22,7 @@
   "homepage": "https://github.com/dschenkelman/hapi-limitd",
   "dependencies": {
     "boom": "^2.6.1",
-    "limitd": "^3.0.6",
+    "limitd": "^4.0.0",
     "joi": "^6.0.0"
   },
   "devDependencies": {
