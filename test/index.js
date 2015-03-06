@@ -4,12 +4,14 @@ var server  = require('./server');
 var limitServer  = require('./limitdServer');
 var Boom    = require('boom');
 
+var EXTRACT_KEY_NOOP = function(request, reply, done){};
+
 describe('options validation', function(){
   it ('should fail if event is not specified', function(){
     plugin.register(null, {
       type: 'user',
       address: 'limitd://10.0.0.1:8090',
-      extractKey: function(request, done){}
+      extractKey: EXTRACT_KEY_NOOP
     }, function(err){
       expect(err.details).to.have.length(1);
 
@@ -23,7 +25,7 @@ describe('options validation', function(){
       event: 'invalid',
       type: 'user',
       address: 'limitd://10.0.0.1:8090',
-      extractKey: function(request, done){}
+      extractKey: EXTRACT_KEY_NOOP
     }, function(err){
       expect(err.details).to.have.length(1);
 
@@ -36,7 +38,7 @@ describe('options validation', function(){
     plugin.register(null, {
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
-      extractKey: function(request, done){}
+      extractKey: EXTRACT_KEY_NOOP
     }, function(err){
       expect(err.details).to.have.length(1);
 
@@ -50,7 +52,7 @@ describe('options validation', function(){
       type: 2,
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
-      extractKey: function(request, done){}
+      extractKey: EXTRACT_KEY_NOOP
     }, function(err){
       expect(err.details).to.have.length(1);
 
@@ -64,7 +66,7 @@ describe('options validation', function(){
       type: '',
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
-      extractKey: function(request, done){}
+      extractKey: EXTRACT_KEY_NOOP
     }, function(err){
       expect(err.details).to.have.length(1);
 
@@ -79,7 +81,7 @@ describe('options validation', function(){
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
       onError: 'string',
-      extractKey: function(request, done){}
+      extractKey: EXTRACT_KEY_NOOP
     }, function(err){
       expect(err.details).to.have.length(1);
 
@@ -119,7 +121,7 @@ describe('options validation', function(){
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
-      extractKey: function(request, done){}
+      extractKey: EXTRACT_KEY_NOOP
     }, function(err){
       expect(err.details).to.have.length(1);
       var firstError = err.details[0];
@@ -131,7 +133,7 @@ describe('options validation', function(){
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
-      extractKey: function(request, done){},
+      extractKey: EXTRACT_KEY_NOOP,
       address: 1
     }, function(err){
       expect(err.details).to.have.length(2);
@@ -148,7 +150,7 @@ describe('options validation', function(){
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
-      extractKey: function(request, done){},
+      extractKey: EXTRACT_KEY_NOOP,
       address: 'https://auth0.com'
     }, function(err){
       expect(err.details).to.have.length(2);
@@ -168,7 +170,7 @@ describe('with server', function(){
       server.start({
         type: 'user',
         address: 'limitd://10.0.0.1:8090',
-        extractKey: function(request, done){
+        extractKey: function(request, reply, done){
           done(Boom.internal('Failed to retrieve key'));
         },
         event: 'onPostAuth'
@@ -197,7 +199,7 @@ describe('with server', function(){
       server.start({
         type: 'user',
         address: 'limitd://10.0.0.1:8090',
-        extractKey: function(request, done){
+        extractKey: function(request, reply, done){
           done(null, 'notImportant');
         },
         event: 'onPostAuth'
@@ -221,7 +223,7 @@ describe('with server', function(){
       server.start({
         type: 'user',
         address: 'limitd://10.0.0.1:8090',
-        extractKey: function(request, done){
+        extractKey: function(request, reply, done){
           done(null, 'notImportant');
         },
         event: 'onPostAuth',
@@ -264,7 +266,7 @@ describe('with server', function(){
         server.start({
           type: 'empty',
           address: { host: address.address, port: address.port },
-          extractKey: function(request, done){
+          extractKey: function(request, reply, done){
             done(null, 'notImportant');
           },
           event: 'onPostAuth',
@@ -294,12 +296,40 @@ describe('with server', function(){
       });
     });
 
+    describe('when check is skipped', function(){
+      before(function(done){
+        server.start({
+          type: 'empty',
+          address: { host: address.address, port: address.port },
+          extractKey: function(request, reply, done){
+            return reply.continue();
+          },
+          event: 'onPostAuth',
+          onError: function(err, reply){
+            return reply(Boom.wrap(err, 500));
+          }
+        }, done);
+      });
+
+      after(server.stop);
+
+      it('should send response with 200', function(done){
+        var request = { method: 'POST', url: '/users', payload: { } };
+        server.inject(request, function (res) {
+          expect(res.statusCode).to.equal(200);
+          expect(res.payload).to.equal('created');
+
+          done();
+        });
+      });
+    });
+
     describe('when limitd responds conformant', function(){
       before(function(done){
         server.start({
           type: 'users',
           address: { host: address.address, port: address.port },
-          extractKey: function(request, done){
+          extractKey: function(request, reply, done){
             done(null, 'key');
           },
           event: 'onPostAuth',
