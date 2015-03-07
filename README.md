@@ -21,7 +21,7 @@ server.register({
     event: 'onPostAuth',
     type: 'users',
     address: { host: '192.168.33.70' },
-    extractKey: function(request, done){
+    extractKey: function(request, reply, done){
       var key = request.auth.credentials.userId;
       done(null, key);
     }
@@ -42,6 +42,7 @@ The object has the following schema (validated [here](./lib/index.js) using [Joi
   * `port: Number` - The port number of the limitd server.
 * `extractKey: (request, done) => ()` - A function that receives the `request` and a callback `done`.
   * `request: Request` - The hapi.js [request object](http://hapijs.com/api#request-object).
+  * `reply: Reply` - The hapi.js [reply interface](http://hapijs.com/api#reply-interface). Useful if you want to skip the check.
   * `done: (err: Error, key: String)` - A function that takes an error as the first parameter and the bucket key as the second parameter.
 
 **Optional**
