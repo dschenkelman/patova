@@ -22,8 +22,9 @@
   "homepage": "https://github.com/dschenkelman/patova",
   "dependencies": {
     "boom": "^2.6.1",
-    "limitd": "^4.0.0",
-    "joi": "^6.0.0"
+    "joi": "^6.0.0",
+    "limitd": "^4.2.0",
+    "limitd-client": "^1.0.2"
   },
   "devDependencies": {
     "chai": "^2.1.0",

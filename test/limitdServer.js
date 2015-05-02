@@ -2,7 +2,7 @@ var rimraf = require('rimraf');
 var path  = require('path');
 var xtend = require('xtend');
 var LimitdServer = require('limitd').Server;
-var LimitdClient = require('limitd').Client;
+var LimitdClient = require('limitd-client');
 
 var server;
 
