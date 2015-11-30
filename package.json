@@ -22,19 +22,19 @@
   "homepage": "https://github.com/dschenkelman/patova",
   "dependencies": {
     "boom": "^2.6.1",
-    "joi": "^6.0.0",
-    "limitd-client": "~1.0.3"
+    "joi": "^7.0.1",
+    "limitd-client": "~1.1.3"
   },
   "devDependencies": {
     "chai": "^2.1.0",
-    "hapi": "9.x.x",
+    "hapi": "11.x.x",
     "js-yaml": "^3.2.7",
-    "limitd": "^4.2.0",
+    "limitd": "^4.8.2",
     "mocha": "^2.1.0",
     "rimraf": "^2.3.1",
     "xtend": "^4.0.0"
   },
   "peerDependencies": {
-    "hapi": "9.x.x"
+    "hapi": "11.x.x"
   }
 }
