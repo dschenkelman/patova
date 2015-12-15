@@ -1,18 +1,19 @@
-var expect  = require('chai').expect;
-var plugin  = require('../');
-var server  = require('./server');
-var limitServer  = require('./limitdServer');
-var Boom    = require('boom');
+'use strict';
+const expect  = require('chai').expect;
+const plugin  = require('../');
+const server  = require('./server');
+const limitServer  = require('./limitdServer');
+const Boom    = require('boom');
 
-var EXTRACT_KEY_NOOP = function(request, reply, done){};
+const EXTRACT_KEY_NOOP = () => {};
 
-describe('options validation', function(){
-  it ('should fail if event is not specified', function(){
+describe('options validation', () => {
+  it ('should fail if event is not specified', () => {
     plugin.register(null, {
       type: 'user',
       address: 'limitd://10.0.0.1:8090',
       extractKey: EXTRACT_KEY_NOOP
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
 
       var firstError = err.details[0];
@@ -20,83 +21,83 @@ describe('options validation', function(){
     });
   });
 
-  it ('should fail if event is not valid', function(){
+  it ('should fail if event is not valid', () => {
     plugin.register(null, {
       event: 'invalid',
       type: 'user',
       address: 'limitd://10.0.0.1:8090',
       extractKey: EXTRACT_KEY_NOOP
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
 
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"event" must be one of [onRequest, onPreAuth, onPostAuth, onPreHandler]');
     });
   });
 
-  it ('should fail if type is not specified', function(){
+  it ('should fail if type is not specified', () => {
     plugin.register(null, {
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
       extractKey: EXTRACT_KEY_NOOP
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
 
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"type" is required');
     });
   });
 
-  it ('should fail if type is of wrong type', function(){
+  it ('should fail if type is of wrong type', () => {
     plugin.register(null, {
       type: 2,
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
       extractKey: EXTRACT_KEY_NOOP
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
 
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"type" must be a string');
     });
   });
 
-  it ('should fail if type is empty string', function(){
+  it ('should fail if type is empty string', () => {
     plugin.register(null, {
       type: '',
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
       extractKey: EXTRACT_KEY_NOOP
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
 
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"type" is not allowed to be empty');
     });
   });
 
-  it ('should fail if onError is not a function', function(){
+  it ('should fail if onError is not a function', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
       onError: 'string',
       extractKey: EXTRACT_KEY_NOOP
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
 
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"onError" must be a Function');
     });
   });
 
-  it ('should fail if extractKey is not a function', function(){
+  it ('should fail if extractKey is not a function', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
       extractKey: 'string'
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
 
       var firstError = err.details[0];
@@ -104,73 +105,73 @@ describe('options validation', function(){
     });
   });
 
-  it ('should fail if extractKey is not provided', function(){
+  it ('should fail if extractKey is not provided', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
       address: 'limitd://10.0.0.1:8090',
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
 
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"extractKey" is required');
     });
   });
 
-  it ('should fail if address is not provided', function(){
+  it ('should fail if address is not provided', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
       extractKey: EXTRACT_KEY_NOOP
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(1);
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"address" is required');
     });
   });
 
-  it ('should fail if address is not string', function(){
+  it ('should fail if address is not string', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
       extractKey: EXTRACT_KEY_NOOP,
       address: 1
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(2);
 
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"address" must be a string');
 
-      var secondError = err.details[1];
+      const secondError = err.details[1];
       expect(secondError.message).to.equal('"address" must be an object');
     });
   });
 
-  it ('should fail address is not uri with limitd schema', function(){
+  it ('should fail address is not uri with limitd schema', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
       extractKey: EXTRACT_KEY_NOOP,
       address: 'https://auth0.com'
-    }, function(err){
+    }, err => {
       expect(err.details).to.have.length(2);
 
-      var firstError = err.details[0];
+      const firstError = err.details[0];
       expect(firstError.message).to.equal('"address" must be a valid uri with a scheme matching the limitd pattern');
 
-      var secondError = err.details[1];
+      const secondError = err.details[1];
       expect(secondError.message).to.equal('"address" must be an object');
     });
   });
 });
 
-describe('with server', function(){
-  describe ('when extractKey fails',function(){
-    before(function(done){
+describe('with server', () => {
+  describe ('when extractKey fails', () => {
+    before(done => {
       server.start({
         type: 'user',
         address: 'limitd://10.0.0.1:8090',
-        extractKey: function(request, reply, done){
+        extractKey: (request, reply, done) => {
           done(Boom.internal('Failed to retrieve key'));
         },
         event: 'onPostAuth'
@@ -178,11 +179,11 @@ describe('with server', function(){
     });
     after(server.stop);
 
-    it ('should send response with error', function(done){
-      var request = { method: 'POST', url: '/users', payload: { } };
+    it ('should send response with error', done => {
+      const request = { method: 'POST', url: '/users', payload: { } };
 
-      server.inject(request, function (res) {
-        var body = JSON.parse(res.payload);
+      server.inject(request, res => {
+        const body = JSON.parse(res.payload);
 
         expect(res.statusCode).to.equal(500);
         expect(body.statusCode).to.equal(500);
@@ -194,12 +195,12 @@ describe('with server', function(){
     });
   });
 
-  describe ('when limitd does not responsd and there is no onError',function(){
-    before(function(done){
+  describe ('when limitd does not provide a response and there is no onError',function(){
+    before(done => {
       server.start({
         type: 'user',
         address: 'limitd://10.0.0.1:8090',
-        extractKey: function(request, reply, done){
+        extractKey: (request, reply, done) => {
           done(null, 'notImportant');
         },
         event: 'onPostAuth'
@@ -207,9 +208,9 @@ describe('with server', function(){
     });
 
     after(server.stop);
-    it('should return 200', function(done){
-      var request = { method: 'POST', url: '/users', payload: { } };
-      server.inject(request, function (res) {
+    it('should return 200', done => {
+      const request = { method: 'POST', url: '/users', payload: { } };
+      server.inject(request, res => {
         expect(res.statusCode).to.equal(200);
         expect(res.payload).to.equal('created');
 
@@ -218,26 +219,24 @@ describe('with server', function(){
     });
   });
 
-  describe ('when limitd does not responsd and there is onError',function(){
-    before(function(done){
+  describe ('when limitd does not responsd and there is onError', () => {
+    before(done => {
       server.start({
         type: 'user',
         address: 'limitd://10.0.0.1:8090',
-        extractKey: function(request, reply, done){
+        extractKey: (request, reply, done) => {
           done(null, 'notImportant');
         },
         event: 'onPostAuth',
-        onError: function(err, reply){
-          return reply(Boom.wrap(err, 500));
-        }
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
       }, done);
     });
 
     after(server.stop);
-    it('should return what onError returns', function(done){
-      var request = { method: 'POST', url: '/users', payload: { } };
-      server.inject(request, function (res) {
-        var body = JSON.parse(res.payload);
+    it('should return what onError returns', done => {
+      const request = { method: 'POST', url: '/users', payload: { } };
+      server.inject(request, res => {
+        const body = JSON.parse(res.payload);
 
         expect(res.statusCode).to.equal(500);
         expect(body.statusCode).to.equal(500);
@@ -250,10 +249,10 @@ describe('with server', function(){
   });
 
 
-  describe('with limitd running', function(){
-    var address;
-    before(function(done){
-      limitServer.start(function(r){
+  describe('with limitd running', () => {
+    let address;
+    before(done => {
+      limitServer.start(r => {
         address = r;
         done();
       });
@@ -261,28 +260,24 @@ describe('with server', function(){
 
     after(limitServer.stop);
 
-    describe('when limitd responds non conformant', function(){
-      before(function(done){
+    describe('when limitd responds non conformant', () => {
+      before(done => {
         server.start({
           type: 'empty',
           address: { host: address.address, port: address.port },
-          extractKey: function(request, reply, done){
-            done(null, 'notImportant');
-          },
+          extractKey: (request, reply, done) => { done(null, 'notImportant'); },
           event: 'onPostAuth',
-          onError: function(err, reply){
-            return reply(Boom.wrap(err, 500));
-          }
+          onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
         }, done);
       });
 
       after(server.stop);
 
-      it('should send response with 429 and headers', function(done){
-        var request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, function (res) {
-          var body = JSON.parse(res.payload);
-          var headers = res.headers;
+      it('should send response with 429 and headers', done => {
+        const request = { method: 'POST', url: '/users', payload: { } };
+        server.inject(request, res => {
+          const body = JSON.parse(res.payload);
+          const headers = res.headers;
 
           expect(body.statusCode).to.equal(429);
           expect(body.error).to.equal('Too Many Requests');
@@ -296,26 +291,22 @@ describe('with server', function(){
       });
     });
 
-    describe('when check is skipped', function(){
-      before(function(done){
+    describe('when check is skipped', () => {
+      before(done => {
         server.start({
           type: 'empty',
           address: { host: address.address, port: address.port },
-          extractKey: function(request, reply, done){
-            return reply.continue();
-          },
+          extractKey: (request, reply) => { reply.continue(); },
           event: 'onPostAuth',
-          onError: function(err, reply){
-            return reply(Boom.wrap(err, 500));
-          }
+          onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
         }, done);
       });
 
       after(server.stop);
 
-      it('should send response with 200', function(done){
-        var request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, function (res) {
+      it('should send response with 200', done => {
+        const request = { method: 'POST', url: '/users', payload: { } };
+        server.inject(request, res => {
           expect(res.statusCode).to.equal(200);
           expect(res.payload).to.equal('created');
 
@@ -324,28 +315,30 @@ describe('with server', function(){
       });
     });
 
-    describe('when limitd responds conformant', function(){
-      before(function(done){
+    describe('when limitd responds conformant', () => {
+      before((done) => {
         server.start({
           type: 'users',
           address: { host: address.address, port: address.port },
-          extractKey: function(request, reply, done){
-            done(null, 'key');
-          },
+          extractKey: (request, reply, done) => { done(null, 'key'); },
           event: 'onPostAuth',
-          onError: function(err, reply){
-            return reply(Boom.wrap(err, 500));
-          }
+          onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
         }, done);
       });
 
       after(server.stop);
 
-      it('should send response with 200 if limit is not passed', function(done){
-        var request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, function (res) {
+      it('should send response with 200 if limit is not passed and set limit header', function(done){
+        const request = { method: 'POST', url: '/users', payload: { } };
+        const startDate = Math.floor((new Date()).getTime() / 1000);
+        server.inject(request, res => {
           expect(res.statusCode).to.equal(200);
           expect(res.payload).to.equal('created');
+
+          const headers = res.headers;
+          expect(headers['x-ratelimit-limit']).to.equal(1000000);
+          expect(headers['x-ratelimit-remaining']).to.equal(999999);
+          expect(headers['x-ratelimit-reset']).to.be.greaterThan(startDate);
 
           done();
         });

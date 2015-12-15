@@ -1,6 +1,6 @@
-var Hapi = require('hapi');
+const Hapi = require('hapi');
 
-var users = {
+const users = {
   john: {
     username: 'john',
     password: 'secret',
@@ -9,30 +9,30 @@ var users = {
   }
 };
 
-var server = new Hapi.Server();
+const server = new Hapi.Server();
 server.connection({
   host: 'localhost',
   port: 8000
 });
 
-var validate = function (username, password, callback) {
-  var user = users[username];
+const validate = function (username, password, callback) {
+  const user = users[username];
   if (!user) { return callback(null, false); }
 
-  var isValid = password === user.password;
+  const isValid = password === user.password;
   callback(null, isValid, { id: user.id, name: user.name });
 };
 
-var plugins = [ require('hapi-auth-basic') ];
+const plugins = [ require('hapi-auth-basic') ];
 
-var patovaConfig = {
+const patovaConfig = {
   register: require('patova'),
   options: {
     event: 'onPostAuth',
     type: 'user',
     address: { host: '127.0.0.1', port: 9001 },
-    extractKey: function(request, reply, done){
-      var key = request.auth.credentials.id;
+    extractKey: (request, reply, done) => {
+      const key = request.auth.credentials.id;
       done(null, key);
     }
   },
@@ -40,14 +40,14 @@ var patovaConfig = {
 
 plugins.push(patovaConfig);
 
-server.register(plugins, function (err) {
+server.register(plugins, () =>  {
   server.auth.strategy('simple', 'basic', { validateFunc: validate });
   server.route({
     method: 'GET',
     path: '/',
     config: {
       auth: 'simple',
-      handler: function(request, reply){
+      handler: (request, reply) => {
         reply(request.auth.credentials.name);
       }
     }
