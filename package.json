@@ -1,6 +1,6 @@
 {
   "name": "patova",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A limitd plugin for hapi.js",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,7 @@
   "dependencies": {
     "boom": "^2.6.1",
     "joi": "^7.0.1",
-    "limitd-client": "~1.7.1"
+    "limitd-client": "^1.7.1"
   },
   "devDependencies": {
     "chai": "^2.1.0",
