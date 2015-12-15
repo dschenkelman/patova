@@ -9,10 +9,10 @@ npm i -S patova
 ## Registering the plug-in
 The following code snippet shows how to register the plug-in in your server:
 ```javascript
-var Hapi = require('hapi');
-var patova = require('patova');
+const Hapi = require('hapi');
+const patova = require('patova');
 
-var server = new Hapi.Server();
+const server = new Hapi.Server();
 server.connection({ /* options */ });
 
 server.register({
@@ -26,7 +26,7 @@ server.register({
       done(null, key);
     }
   },
-}, function (err) {
+}, err => {
   //
 });
 ```
@@ -46,7 +46,7 @@ The object has the following schema (validated [here](./lib/index.js) using [Joi
   * `done: (err: Error, key: String)` - A function that takes an error as the first parameter and the bucket key as the second parameter.
 
 **Optional**
-* `onError: (error, reply) => ()` - A function that takes the `error` that occurred when trying to get a token from the bucket and the `reply` interface. 
+* `onError: (error, reply) => ()` - A function that takes the `error` that occurred when trying to get a token from the bucket and the `reply` interface.
   * `error: Error` - The error that occurred.
   * `reply: Reply` - The hapi.js [reply interface](http://hapijs.com/api#reply-interface).
   > If an error occurs and no function is provided, the request lifecycle continues normally as if there was no token bucket restriction. This is a useful default behavior in case the limitd server goes down.
