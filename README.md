@@ -36,7 +36,7 @@ The object has the following schema (validated [here](./lib/index.js) using [Joi
 
 **Required**
 * `event: String` - The name of the extension point in the request lifecycle when the bucket check must be performed. Options are `"onRequest"`, `"onPreAuth"`, `"onPostAuth"`,`"onPreHandler"` (anything before the request).
-* `type: String` - The bucket type.
+* `type: String|(request, callback) => ()` - Either the bucket type as a string or a function. If you use a function, it will be called for every request, this function must invoke the callback function when it is finished.
 * `address: String|Object` - Represents the limitd server address. Either a URI with the "limitd" scheme or an object with the following properties:
   * `host: String` - The host name / ip address of the limitd server.
   * `port: Number` - The port number of the limitd server.
