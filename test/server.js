@@ -6,31 +6,40 @@ var server;
 
 exports.start = function(replyOptions, pluginOptions, done){
   server = new Hapi.Server();
+
   server.connection({
     host: 'localhost',
     port: 3001,
   });
 
-  server.register({
-    register: plugin,
-    options: pluginOptions,
-  }, function (err) {
-    if (err) { throw err; }
-
-    server.route({
-      method: 'POST',
-      path:'/users',
-      handler: function (request, reply) {
-        if (replyOptions.replyError) {
-          reply(Boom.forbidden('You cannot access Zion'));
-        } else {
-          reply('created');
-        }
+  server.route({
+    method: 'POST',
+    path:'/users',
+    handler: function (request, reply) {
+      if (replyOptions.replyError) {
+        reply(Boom.forbidden('You cannot access Zion'));
+      } else {
+        reply('created');
       }
-    });
+    }
+  });
+
+  const allPluginOptions = Array.isArray(pluginOptions) ? pluginOptions : [ pluginOptions ];
+
+  const plugins = allPluginOptions.map(pluginOptions => this.desc(pluginOptions));
+
+  server.register(plugins, err => {
+    if (err) { throw err; }
 
     server.start(done);
   });
+};
+
+exports.desc = function(pluginOptions) {
+  return {
+    register: plugin,
+    options: pluginOptions,
+  };
 };
 
 exports.inject = function(){
