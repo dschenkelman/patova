@@ -55,7 +55,7 @@ describe('options validation', () => {
       address: 'limitd://10.0.0.1:8090',
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
-      expect(err.details).to.have.length(1);
+      expect(err.details).to.have.length(2);
 
       const firstError = err.details[0];
       expect(firstError.message).to.equal('"type" must be a string');
@@ -69,7 +69,7 @@ describe('options validation', () => {
       address: 'limitd://10.0.0.1:8090',
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
-      expect(err.details).to.have.length(1);
+      expect(err.details).to.have.length(2);
 
       const firstError = err.details[0];
       expect(firstError.message).to.equal('"type" is not allowed to be empty');
@@ -248,6 +248,66 @@ describe('with server', () => {
     });
   });
 
+  describe ('when type is a function', () => {
+
+    describe('and it fails with a callback error', () => {
+      before(done => {
+        server.start({
+          type: (request, callback) => { callback(new Error('failed!')); },
+          address: 'limitd://10.0.0.1:8090',
+          extractKey: (request, reply, done) => {
+            done(null, 'notImportant');
+          },
+          event: 'onPostAuth'
+        }, done);
+      });
+      after(server.stop);
+
+      it ('should send response with error', done => {
+        const request = { method: 'POST', url: '/users', payload: { } };
+
+        server.inject(request, res => {
+          const body = JSON.parse(res.payload);
+
+          expect(res.statusCode).to.equal(500);
+          expect(body.statusCode).to.equal(500);
+          expect(body.error).to.equal('Internal Server Error');
+          expect(body.message).to.equal('An internal server error occurred');
+
+          done();
+        });
+      });
+    });
+
+    describe('and it fails with a thrown error', () => {
+      before(done => {
+        server.start({
+          type: (request, callback) => { throw new Error('failed!'); },
+          address: 'limitd://10.0.0.1:8090',
+          extractKey: (request, reply, done) => {
+            done(null, 'notImportant');
+          },
+          event: 'onPostAuth'
+        }, done);
+      });
+      after(server.stop);
+
+      it ('should send response with error', done => {
+        const request = { method: 'POST', url: '/users', payload: { } };
+
+        server.inject(request, res => {
+          const body = JSON.parse(res.payload);
+
+          expect(res.statusCode).to.equal(500);
+          expect(body.statusCode).to.equal(500);
+          expect(body.error).to.equal('Internal Server Error');
+          expect(body.message).to.equal('An internal server error occurred');
+
+          done();
+        });
+      });
+    });
+  });
 
   describe('with limitd running', () => {
     let address;
@@ -260,89 +320,115 @@ describe('with server', () => {
 
     after(limitServer.stop);
 
-    describe('when limitd responds non conformant', () => {
-      before(done => {
-        server.start({
-          type: 'empty',
-          address: { host: address.address, port: address.port },
-          extractKey: (request, reply, done) => { done(null, 'notImportant'); },
-          event: 'onPostAuth',
-          onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
-        }, done);
-      });
-
-      after(server.stop);
-
-      it('should send response with 429 and headers', done => {
-        const request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, res => {
-          const body = JSON.parse(res.payload);
-          const headers = res.headers;
-
-          expect(body.statusCode).to.equal(429);
-          expect(body.error).to.equal('Too Many Requests');
-
-          expect(headers['x-ratelimit-limit']).to.equal(0);
-          expect(headers['x-ratelimit-remaining']).to.equal(0);
-          expect(headers['x-ratelimit-reset']).to.equal(0);
-
-          done();
-        });
+    describe('when type is an string', () => {
+      itBehavesLikeWhenLimitdIsRunning({
+        emptyType: 'empty',
+        usersType: 'users',
+        address: () => address
       });
     });
 
-    describe('when check is skipped', () => {
-      before(done => {
-        server.start({
-          type: 'empty',
-          address: { host: address.address, port: address.port },
-          extractKey: (request, reply) => { reply.continue(); },
-          event: 'onPostAuth',
-          onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
-        }, done);
-      });
-
-      after(server.stop);
-
-      it('should send response with 200', done => {
-        const request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, res => {
-          expect(res.statusCode).to.equal(200);
-          expect(res.payload).to.equal('created');
-
-          done();
-        });
+    describe('when type is a function', () => {
+      itBehavesLikeWhenLimitdIsRunning({
+        emptyType: (request, callback) => callback(null, 'empty'),
+        usersType: (request, callback) => callback(null, 'users'),
+        address: () => address
       });
     });
 
-    describe('when limitd responds conformant', () => {
-      before((done) => {
-        server.start({
-          type: 'users',
-          address: { host: address.address, port: address.port },
-          extractKey: (request, reply, done) => { done(null, 'key'); },
-          event: 'onPostAuth',
-          onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
-        }, done);
-      });
+  });
 
-      after(server.stop);
+});
 
-      it('should send response with 200 if limit is not passed and set limit header', function(done){
-        const request = { method: 'POST', url: '/users', payload: { } };
-        const startDate = Math.floor((new Date()).getTime() / 1000);
-        server.inject(request, res => {
-          expect(res.statusCode).to.equal(200);
-          expect(res.payload).to.equal('created');
+function itBehavesLikeWhenLimitdIsRunning(options) {
+  let address;
 
-          const headers = res.headers;
-          expect(headers['x-ratelimit-limit']).to.equal(1000000);
-          expect(headers['x-ratelimit-remaining']).to.equal(999999);
-          expect(headers['x-ratelimit-reset']).to.be.greaterThan(startDate);
+  before(() => {
+    address = options.address();
+  });
 
-          done();
-        });
+  describe('when limitd responds non conformant', () => {
+    before(done => {
+      server.start({
+        type: options.emptyType,
+        address: { host: address.address, port: address.port },
+        extractKey: (request, reply, done) => { done(null, 'notImportant'); },
+        event: 'onPostAuth',
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
+      }, done);
+    });
+
+    after(server.stop);
+
+    it('should send response with 429 and headers', done => {
+      const request = { method: 'POST', url: '/users', payload: { } };
+      server.inject(request, res => {
+        const body = JSON.parse(res.payload);
+        const headers = res.headers;
+
+        expect(body.statusCode).to.equal(429);
+        expect(body.error).to.equal('Too Many Requests');
+
+        expect(headers['x-ratelimit-limit']).to.equal(0);
+        expect(headers['x-ratelimit-remaining']).to.equal(0);
+        expect(headers['x-ratelimit-reset']).to.equal(0);
+
+        done();
       });
     });
   });
-});
+
+  describe('when check is skipped', () => {
+    before(done => {
+      server.start({
+        type: options.emptyType,
+        address: { host: address.address, port: address.port },
+        extractKey: (request, reply) => { reply.continue(); },
+        event: 'onPostAuth',
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
+      }, done);
+    });
+
+    after(server.stop);
+
+    it('should send response with 200', done => {
+      const request = { method: 'POST', url: '/users', payload: { } };
+      server.inject(request, res => {
+        expect(res.statusCode).to.equal(200);
+        expect(res.payload).to.equal('created');
+
+        done();
+      });
+    });
+  });
+
+  describe('when limitd responds conformant', () => {
+    before((done) => {
+      server.start({
+        type: options.usersType,
+        address: { host: address.address, port: address.port },
+        extractKey: (request, reply, done) => { done(null, 'key'); },
+        event: 'onPostAuth',
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
+      }, done);
+    });
+
+    after(server.stop);
+
+    it('should send response with 200 if limit is not passed and set limit header', function(done){
+      const request = { method: 'POST', url: '/users', payload: { } };
+      const startDate = Math.floor((new Date()).getTime() / 1000);
+      server.inject(request, res => {
+        expect(res.statusCode).to.equal(200);
+        expect(res.payload).to.equal('created');
+
+        const headers = res.headers;
+        expect(headers['x-ratelimit-limit']).to.equal(1000000);
+        expect(headers['x-ratelimit-remaining']).to.equal(999999);
+        expect(headers['x-ratelimit-reset']).to.be.greaterThan(startDate);
+
+        done();
+      });
+    });
+  });
+}
