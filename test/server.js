@@ -1,9 +1,10 @@
 var Hapi = require('hapi');
 var plugin = require('../');
+var Boom = require('boom');
 
 var server;
 
-exports.start = function(pluginOptions, done){
+exports.start = function(replyOptions, pluginOptions, done){
   server = new Hapi.Server();
   server.connection({
     host: 'localhost',
@@ -20,7 +21,11 @@ exports.start = function(pluginOptions, done){
       method: 'POST',
       path:'/users',
       handler: function (request, reply) {
-        reply('created');
+        if (replyOptions.replyError) {
+          reply(Boom.forbidden('You cannot access Zion'));
+        } else {
+          reply('created');
+        }
       }
     });
 
