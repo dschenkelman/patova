@@ -1,13 +1,16 @@
-var rimraf = require('rimraf');
-var path  = require('path');
-var xtend = require('xtend');
-var LimitdServer = require('limitd').Server;
-var LimitdClient = require('limitd-client');
+'use strict';
 
-var server;
+const rimraf = require('rimraf');
+const path  = require('path');
+const xtend = require('xtend');
+const LimitdServer = require('limitd').Server;
+const LimitdClient = require('limitd-client');
+
+let server;
+let instanceNumber = 0;
 
 exports.start = function(done){
-  var db_file = path.join(__dirname, 'dbs', 'server.tests.db');
+  const db_file = path.join(__dirname, 'dbs', `server.${instanceNumber++}.tests.db`);
 
   try{
     rimraf.sync(db_file);
@@ -17,13 +20,17 @@ exports.start = function(done){
 
   server.start(function (err, address) {
     if (err) { return done(err); }
-    client = new LimitdClient({ host: address.address, port: address.port });
+    let client = new LimitdClient({ host: address.address, port: address.port });
     client.once('connect', function(){
+      client.disconnect();
+
       done(address);
     });
   });
 };
 
-exports.stop = function () {
+exports.stop = function (done) {
+  server.once('close', () => done());
+
   server.stop();
 };

@@ -310,21 +310,13 @@ describe('with server', () => {
   });
 
   describe('with limitd running', () => {
-    let address;
-    before(done => {
-      limitServer.start(r => {
-        address = r;
-        done();
-      });
-    });
-
-    after(limitServer.stop);
 
     describe('when type is an string', () => {
       itBehavesLikeWhenLimitdIsRunning({
         emptyType: 'empty',
         usersType: 'users',
-        address: () => address
+        bucket3type: 'bucket_3',
+        bucket4type: 'bucket_4'
       });
     });
 
@@ -332,7 +324,8 @@ describe('with server', () => {
       itBehavesLikeWhenLimitdIsRunning({
         emptyType: (request, callback) => callback(null, 'empty'),
         usersType: (request, callback) => callback(null, 'users'),
-        address: () => address
+        bucket3type: (request, callback) => callback(null, 'bucket_3'),
+        bucket4type: (request, callback) => callback(null, 'bucket_4')
       });
     });
 
@@ -343,9 +336,14 @@ describe('with server', () => {
 function itBehavesLikeWhenLimitdIsRunning(options) {
   let address;
 
-  before(() => {
-    address = options.address();
+  before(done => {
+    limitServer.start(r => {
+      address = r;
+      done();
+    });
   });
+
+  after(limitServer.stop);
 
   describe('when limitd responds conformant', () => {
     describe('and request response is normal', () => {
@@ -492,6 +490,90 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
           expect(headers['x-ratelimit-limit']).to.equal(1000000);
           expect(headers['x-ratelimit-remaining']).to.equal(999999);
           expect(headers['x-ratelimit-reset']).to.be.greaterThan(startDate);
+
+          done();
+        });
+      });
+    });
+  });
+
+  describe('when plugin is registered multiple times', function() {
+
+    describe('when limitd responds conformant', () => {
+      before((done) => {
+        server.start({ replyError: false }, [
+          {
+            type: options.bucket3type,
+            address: { host: address.address, port: address.port },
+            extractKey: (request, reply, done) => { done(null, 'key'); },
+            event: 'onRequest'
+          },
+          {
+            type: options.bucket4type,
+            address: { host: address.address, port: address.port },
+            extractKey: (request, reply, done) => { done(null, 'key'); },
+            event: 'onRequest'
+          }
+        ], done);
+      });
+
+      after(server.stop);
+
+      it('should send response with 200 if limit is not passed and set limit header to the lowest remaining limit', function(done){
+        const request = { method: 'POST', url: '/users', payload: { } };
+        const startDate = Math.floor((new Date()).getTime() / 1000);
+        server.inject(request, res => {
+          expect(res.statusCode).to.equal(200);
+          expect(res.payload).to.equal('created');
+
+          const headers = res.headers;
+          expect(headers['x-ratelimit-limit']).to.equal(3);
+          expect(headers['x-ratelimit-remaining']).to.equal(2);
+          expect(headers['x-ratelimit-reset']).to.be.greaterThan(startDate);
+
+          done();
+        });
+      });
+    });
+
+    describe('when limitd responds not conformant', () => {
+      before((done) => {
+        server.start({ replyError: false }, [
+          {
+            type: options.bucket3type,
+            address: { host: address.address, port: address.port },
+            extractKey: (request, reply, done) => { done(null, 'key'); },
+            event: 'onRequest'
+          },
+          {
+            type: options.emptyType,
+            address: { host: address.address, port: address.port },
+            extractKey: (request, reply, done) => { done(null, 'key'); },
+            event: 'onRequest'
+          },
+          {
+            type: options.bucket3type,
+            address: { host: address.address, port: address.port },
+            extractKey: (request, reply, done) => { done(null, 'key'); },
+            event: 'onRequest'
+          }
+        ], done);
+      });
+
+      after(server.stop);
+
+      it('should send response with 429 if limit has passed for some plugin configuration and set limit header', function(done){
+        const request = { method: 'POST', url: '/users', payload: { } };
+        server.inject(request, res => {
+          const body = JSON.parse(res.payload);
+          const headers = res.headers;
+
+          expect(res.statusCode).to.equal(429);
+          expect(body.error).to.equal('Too Many Requests');
+
+          expect(headers['x-ratelimit-limit']).to.equal(0);
+          expect(headers['x-ratelimit-remaining']).to.equal(0);
+          expect(headers['x-ratelimit-reset']).to.equal(0);
 
           done();
         });

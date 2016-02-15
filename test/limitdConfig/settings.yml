@@ -7,3 +7,10 @@ buckets:
     interval: 10
   empty:
     size: 0
+  bucket_3:
+    size: 3
+    per_hour: 1
+  bucket_4:
+    size: 10
+    per_hour: 1
+
