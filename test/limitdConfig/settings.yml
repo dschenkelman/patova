@@ -3,8 +3,7 @@ port: 9001
 buckets:
   users:
     size: 1000000
-    per_interval: 10000
-    interval: 10
+    per_second: 100000
   empty:
     size: 0
   bucket_3:

@@ -137,13 +137,19 @@ describe('options validation', () => {
       extractKey: EXTRACT_KEY_NOOP,
       address: 1
     }, err => {
-      expect(err.details).to.have.length(2);
+      expect(err.details).to.have.length(4);
 
       const firstError = err.details[0];
       expect(firstError.message).to.equal('"address" must be a string');
 
       const secondError = err.details[1];
       expect(secondError.message).to.equal('"address" must be an object');
+
+      const thirdError = err.details[2];
+      expect(thirdError.message).to.equal('"address" must be an array');
+
+      const fourth = err.details[3];
+      expect(fourth.message).to.equal('"address" must be an object');
     });
   });
 
@@ -154,13 +160,19 @@ describe('options validation', () => {
       extractKey: EXTRACT_KEY_NOOP,
       address: 'https://auth0.com'
     }, err => {
-      expect(err.details).to.have.length(2);
+      expect(err.details).to.have.length(4);
 
       const firstError = err.details[0];
       expect(firstError.message).to.equal('"address" must be a valid uri with a scheme matching the limitd pattern');
 
       const secondError = err.details[1];
       expect(secondError.message).to.equal('"address" must be an object');
+
+      const thirdError = err.details[2];
+      expect(thirdError.message).to.equal('"address" must be an array');
+
+      const fourth = err.details[3];
+      expect(fourth.message).to.equal('"address" must be an object');
     });
   });
 });
@@ -199,7 +211,9 @@ describe('with server', () => {
     before(done => {
       server.start({ replyError: false }, {
         type: 'user',
-        address: 'limitd://10.0.0.1:8090',
+        address: {
+          hosts: [ 'limitd://10.0.0.1:8090' ]
+        },
         extractKey: (request, reply, done) => {
           done(null, 'notImportant');
         },
@@ -223,7 +237,7 @@ describe('with server', () => {
     before(done => {
       server.start({ replyError: false }, {
         type: 'user',
-        address: 'limitd://10.0.0.1:8090',
+        address: [ 'limitd://10.0.0.1:8090' ],
         extractKey: (request, reply, done) => {
           done(null, 'notImportant');
         },
@@ -254,7 +268,9 @@ describe('with server', () => {
       before(done => {
         server.start({ replyError: false }, {
           type: (request, callback) => { callback(new Error('failed!')); },
-          address: 'limitd://10.0.0.1:8090',
+          address: {
+            hosts: [ { host:'10.0.0.1', port:8090 } ]
+          },
           extractKey: (request, reply, done) => {
             done(null, 'notImportant');
           },
