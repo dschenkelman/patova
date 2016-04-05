@@ -1,6 +1,6 @@
 {
   "name": "patova",
-  "version": "0.4.0",
+  "version": "0.5.0-dev.0",
   "description": "A limitd plugin for hapi.js",
   "main": "index.js",
   "scripts": {
