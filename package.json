@@ -23,7 +23,7 @@
   "dependencies": {
     "boom": "^2.6.1",
     "joi": "^7.0.1",
-    "limitd-client": "^1.8.0"
+    "limitd-client": "^1.8.1"
   },
   "devDependencies": {
     "chai": "^2.1.0",
