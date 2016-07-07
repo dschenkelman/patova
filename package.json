@@ -33,8 +33,5 @@
     "mocha": "^2.1.0",
     "rimraf": "^2.3.1",
     "xtend": "^4.0.0"
-  },
-  "peerDependencies": {
-    "hapi": "11.x.x"
   }
 }
