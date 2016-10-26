@@ -23,13 +23,13 @@
   "dependencies": {
     "boom": "^2.6.1",
     "joi": "^7.0.1",
-    "limitd-client": "^1.7.1"
+    "limitd-client": "^1.10.1"
   },
   "devDependencies": {
     "chai": "^2.1.0",
     "hapi": "^15.2.0",
     "js-yaml": "^3.2.7",
-    "limitd": "^4.8.2",
+    "limitd": "^4.20.1",
     "mocha": "^2.1.0",
     "rimraf": "^2.3.1",
     "xtend": "^4.0.0"
