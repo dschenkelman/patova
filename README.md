@@ -20,7 +20,7 @@ server.register({
   options: {
     event: 'onPostAuth',
     type: 'users',
-    address: { host: '192.168.33.70' },
+    address: 'limitd://10.0.0.1:8090',
     extractKey: function(request, reply, done){
       var key = request.auth.credentials.userId;
       done(null, key);

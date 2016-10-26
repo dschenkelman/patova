@@ -177,6 +177,7 @@ describe('with server', () => {
         event: 'onPostAuth'
       }, done);
     });
+
     after(server.stop);
 
     it ('should send response with error', done => {
@@ -338,7 +339,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
   before(done => {
     limitServer.start(r => {
-      address = r;
+      address = 'limitd://' + r.address +  ':' + r.port;
       done();
     });
   });
@@ -350,7 +351,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before(done => {
         server.start({ replyError: false }, {
           type: options.emptyType,
-          address: { host: address.address, port: address.port },
+          address: address,
           extractKey: (request, reply, done) => { done(null, 'notImportant'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -381,7 +382,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before(done => {
         server.start({ replyError: true }, {
           type: options.emptyType,
-          address: { host: address.address, port: address.port },
+          address: address,
           extractKey: (request, reply, done) => { done(null, 'notImportant'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -413,7 +414,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
     before(done => {
       server.start({ replyError: false }, {
         type: options.emptyType,
-        address: { host: address.address, port: address.port },
+        address: address,
         extractKey: (request, reply) => { reply.continue(); },
         event: 'onPostAuth',
         onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -438,7 +439,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before((done) => {
         server.start({ replyError: false }, {
           type: options.usersType,
-          address: { host: address.address, port: address.port },
+          address: address,
           extractKey: (request, reply, done) => { done(null, 'key'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -468,7 +469,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before((done) => {
         server.start({ replyError: true }, {
           type: options.usersType,
-          address: { host: address.address, port: address.port },
+          address: address,
           extractKey: (request, reply, done) => { done(null, 'key'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -504,13 +505,13 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         server.start({ replyError: false }, [
           {
             type: options.bucket3type,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.bucket4type,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           }
@@ -541,19 +542,19 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         server.start({ replyError: false }, [
           {
             type: options.bucket3type,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.emptyType,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.bucket3type,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           }

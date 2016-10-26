@@ -20,7 +20,8 @@ exports.start = function(done){
 
   server.start(function (err, address) {
     if (err) { return done(err); }
-    let client = new LimitdClient({ host: address.address, port: address.port });
+    const uri = 'limitd://' + address.address +  ':' + address.port;
+    const client = new LimitdClient(uri);
     client.once('connect', function(){
       client.disconnect();
 
