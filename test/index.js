@@ -140,18 +140,6 @@ describe('options validation', () => {
       address: 1
     }, err => {
       expect(err.details).to.have.length(4);
-
-      const firstError = err.details[0];
-      expect(firstError.message).to.equal('"address" must be a string');
-
-      const secondError = err.details[1];
-      expect(secondError.message).to.equal('"address" must be an object');
-
-      const thirdError = err.details[2];
-      expect(thirdError.message).to.equal('"address" must be an array');
-
-      const fourth = err.details[3];
-      expect(fourth.message).to.equal('"address" must be an object');
     });
   });
 
@@ -163,18 +151,46 @@ describe('options validation', () => {
       address: 'https://auth0.com'
     }, err => {
       expect(err.details).to.have.length(4);
+    });
+  });
 
-      const firstError = err.details[0];
-      expect(firstError.message).to.equal('"address" must be a valid uri with a scheme matching the limitd pattern');
+  it ('should fail address array items lack limitd schema', () => {
+    plugin.register(null, {
+      type: 'user',
+      event: 'onRequest',
+      extractKey: EXTRACT_KEY_NOOP,
+      address: ['limitd://some', 'http://auth0.com']
+    }, err => {
+      expect(err.details).to.have.length(4);
+    });
+  });
 
-      const secondError = err.details[1];
-      expect(secondError.message).to.equal('"address" must be an object');
+  it ('should fail address hosts objects are invalid', () => {
+    plugin.register(null, {
+      type: 'user',
+      event: 'onRequest',
+      extractKey: EXTRACT_KEY_NOOP,
+      address: {
+        hosts: [{
+          host: '10.0.0.1',
+          port: 'test?'
+        }]
+      }
+    }, err => {
+      expect(err.details).to.have.length(4);
+    });
+  });
 
-      const thirdError = err.details[2];
-      expect(thirdError.message).to.equal('"address" must be an array');
-
-      const fourth = err.details[3];
-      expect(fourth.message).to.equal('"address" must be an object');
+  it ('should fail address hosts array entries are invalid', () => {
+    plugin.register(null, {
+      type: 'user',
+      event: 'onRequest',
+      extractKey: EXTRACT_KEY_NOOP,
+      address: {
+        hosts: ['limitd://some', 'http://auth0.com']
+      }
+    }, err => {
+      expect(err.details).to.have.length(5);
     });
   });
 });
