@@ -2,7 +2,7 @@
 buckets:
   users:
     size: 1000000
-    per_second: 100000
+    per_second: 10000
   empty:
     size: 0
   bucket_3:

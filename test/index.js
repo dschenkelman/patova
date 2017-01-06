@@ -38,7 +38,9 @@ describe('options validation', () => {
   it ('should fail if type is not specified', () => {
     plugin.register(null, {
       event: 'onRequest',
-      address: 'limitd://10.0.0.1:8090',
+      address: {
+        hosts: [ { host:'10.0.0.1', port:8090 } ]
+      },
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
       expect(err.details).to.have.length(1);
@@ -138,18 +140,6 @@ describe('options validation', () => {
       address: 1
     }, err => {
       expect(err.details).to.have.length(4);
-
-      const firstError = err.details[0];
-      expect(firstError.message).to.equal('"address" must be a string');
-
-      const secondError = err.details[1];
-      expect(secondError.message).to.equal('"address" must be an object');
-
-      const thirdError = err.details[2];
-      expect(thirdError.message).to.equal('"address" must be an array');
-
-      const fourth = err.details[3];
-      expect(fourth.message).to.equal('"address" must be an object');
     });
   });
 
@@ -161,18 +151,46 @@ describe('options validation', () => {
       address: 'https://auth0.com'
     }, err => {
       expect(err.details).to.have.length(4);
+    });
+  });
 
-      const firstError = err.details[0];
-      expect(firstError.message).to.equal('"address" must be a valid uri with a scheme matching the limitd pattern');
+  it ('should fail address array items lack limitd schema', () => {
+    plugin.register(null, {
+      type: 'user',
+      event: 'onRequest',
+      extractKey: EXTRACT_KEY_NOOP,
+      address: ['limitd://some', 'http://auth0.com']
+    }, err => {
+      expect(err.details).to.have.length(4);
+    });
+  });
 
-      const secondError = err.details[1];
-      expect(secondError.message).to.equal('"address" must be an object');
+  it ('should fail address hosts objects are invalid', () => {
+    plugin.register(null, {
+      type: 'user',
+      event: 'onRequest',
+      extractKey: EXTRACT_KEY_NOOP,
+      address: {
+        hosts: [{
+          host: '10.0.0.1',
+          port: 'test?'
+        }]
+      }
+    }, err => {
+      expect(err.details).to.have.length(4);
+    });
+  });
 
-      const thirdError = err.details[2];
-      expect(thirdError.message).to.equal('"address" must be an array');
-
-      const fourth = err.details[3];
-      expect(fourth.message).to.equal('"address" must be an object');
+  it ('should fail address hosts array entries are invalid', () => {
+    plugin.register(null, {
+      type: 'user',
+      event: 'onRequest',
+      extractKey: EXTRACT_KEY_NOOP,
+      address: {
+        hosts: ['limitd://some', 'http://auth0.com']
+      }
+    }, err => {
+      expect(err.details).to.have.length(5);
     });
   });
 });
@@ -189,6 +207,7 @@ describe('with server', () => {
         event: 'onPostAuth'
       }, done);
     });
+
     after(server.stop);
 
     it ('should send response with error', done => {
@@ -354,7 +373,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
   before(done => {
     limitServer.start(r => {
-      address = r;
+      address = 'limitd://' + r.address +  ':' + r.port;
       done();
     });
   });
@@ -366,7 +385,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before(done => {
         server.start({ replyError: false }, {
           type: options.emptyType,
-          address: { host: address.address, port: address.port },
+          address: address,
           extractKey: (request, reply, done) => { done(null, 'notImportant'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -397,7 +416,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before(done => {
         server.start({ replyError: true }, {
           type: options.emptyType,
-          address: { host: address.address, port: address.port },
+          address: address,
           extractKey: (request, reply, done) => { done(null, 'notImportant'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -429,7 +448,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
     before(done => {
       server.start({ replyError: false }, {
         type: options.emptyType,
-        address: { host: address.address, port: address.port },
+        address: address,
         extractKey: (request, reply) => { reply.continue(); },
         event: 'onPostAuth',
         onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -454,7 +473,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before((done) => {
         server.start({ replyError: false }, {
           type: options.usersType,
-          address: { host: address.address, port: address.port },
+          address: address,
           extractKey: (request, reply, done) => { done(null, 'key'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -484,7 +503,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before((done) => {
         server.start({ replyError: true }, {
           type: options.usersType,
-          address: { host: address.address, port: address.port },
+          address: address,
           extractKey: (request, reply, done) => { done(null, 'key'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -520,13 +539,13 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         server.start({ replyError: false }, [
           {
             type: options.bucket3type,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.bucket4type,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           }
@@ -557,19 +576,19 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         server.start({ replyError: false }, [
           {
             type: options.bucket3type,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.emptyType,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.bucket3type,
-            address: { host: address.address, port: address.port },
+            address: address,
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           }

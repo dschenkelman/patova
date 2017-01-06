@@ -27,11 +27,14 @@
   },
   "devDependencies": {
     "chai": "^2.1.0",
-    "hapi": "11.x.x",
+    "hapi": "^15.2.0",
     "js-yaml": "^3.2.7",
-    "limitd": "^4.17.0",
+    "limitd": "^4.20.1",
     "mocha": "^2.1.0",
     "rimraf": "^2.3.1",
     "xtend": "^4.0.0"
+  },
+  "peerDependencies": {
+    "hapi": ">=11.x.x <=15.x.x"
   }
 }
