@@ -23,9 +23,10 @@
   "dependencies": {
     "boom": "^2.6.1",
     "joi": "^7.0.1",
-    "limitd-client": "^1.10.2"
+    "limitd-client": "^1.13.1"
   },
   "devDependencies": {
+    "async": "^2.1.4",
     "chai": "^2.1.0",
     "hapi": "^15.2.0",
     "js-yaml": "^3.2.7",

@@ -6,32 +6,57 @@ const xtend = require('xtend');
 const LimitdServer = require('limitd').Server;
 const LimitdClient = require('limitd-client');
 
-let server;
 let instanceNumber = 0;
 
-exports.start = function(done){
-  const db_file = path.join(__dirname, 'dbs', `server.${instanceNumber++}.tests.db`);
+function create(port) {
 
-  try{
-    rimraf.sync(db_file);
-  } catch(err){}
+  port = port || 9001;
 
-  server = new LimitdServer(xtend({db: db_file}, require('./limitdConfig')));
+  let server;
+  
+  return {
 
-  server.start(function (err, address) {
-    if (err) { return done(err); }
-    const uri = 'limitd://' + address.address +  ':' + address.port;
-    const client = new LimitdClient(uri);
-    client.once('connect', function(){
-      client.disconnect();
+    start: function(cb) {
+      const db_file = path.join(__dirname, 'dbs', `server.${instanceNumber++}.tests.db`);
 
-      done(address);
-    });
+      try{
+        rimraf.sync(db_file);
+      } catch(err){}
+
+      server = new LimitdServer(xtend({db: db_file, port: port}, require('./limitdConfig')));
+
+      server.start(function (err, address) {
+        if (err) { return cb(err); }
+
+        let client = new LimitdClient(`limitd://127.0.0.1:${port}`);
+        client.once('connect', function(){
+          client.disconnect();
+          cb(null, address);
+        });
+      });
+    },
+
+    stop: function (cb) {
+      server.once('close', function() {
+        cb();
+      });
+      server.stop();
+    }
+  };
+}
+
+exports.create = create;
+
+// backguard compatibility
+const instance = create();
+
+exports.start = function(done) {
+  return instance.start(function(err, address) {
+    done(address);
   });
 };
 
-exports.stop = function (done) {
-  server.once('close', () => done());
-
-  server.stop();
+exports.stop = function(done) {
+  return instance.stop(done);
 };
+
