@@ -26,6 +26,7 @@
     "limitd-client": "^1.13.1"
   },
   "devDependencies": {
+    "async": "^2.1.4",
     "chai": "^2.1.0",
     "hapi": "^15.2.0",
     "js-yaml": "^3.2.7",

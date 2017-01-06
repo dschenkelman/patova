@@ -1,6 +1,7 @@
 'use strict';
 
 const expect        = require('chai').expect;
+const async         = require('async');
 const limitdPool    = require('../lib/limitd_pool');
 const limitdServer  = require('./limitdServer');
 const LimitdClient  = require('limitd-client');
@@ -71,12 +72,10 @@ describe('limitd_pool', function() {
 
     before (function() {
       // create all limitd server instances.
-      var count = 3;
-      for(let n=0; n<count; n++) {  
-        let server = limitdServer.create(9002 + n);
-        servers.push(server);
-        addresses.push(`limitd://127.0.0.1:${9002 + n}`);
-      }
+      servers = [9001, 9002, 9003].map((port) => {
+        addresses.push(`limitd://127.0.0.1:${port}`);
+        return limitdServer.create(port);
+      });
 
       limitdPool.prepare(addresses);
     });
@@ -84,12 +83,11 @@ describe('limitd_pool', function() {
     describe('when all limitd servers are running', function() {
 
       before(function(done) {
-        servers[0].start(function () {
-          servers[1].start(function () {
-            servers[2].start(function () {
-              setTimeout(done, 300);
-            });
-          });
+        async.each(servers, function (server, cb) {
+          server.start(cb);
+        },
+        function (err) {
+          setTimeout(done, 300, err);
         });
       });
 
@@ -102,11 +100,14 @@ describe('limitd_pool', function() {
       describe('when just one server is running', function() {
         
         before(function(done) {
-          servers[0].stop(function () {
-            servers[1].stop(function () {
-              setTimeout(done, 300);
-            });
-          });
+          async.parallel([
+            servers[0].stop,
+            servers[1].stop
+            ],
+            function (err) {
+              setTimeout(done, 300, err);
+            }
+          );
         });
 
         it('the get method should return a limitd instance', function() {
@@ -117,8 +118,8 @@ describe('limitd_pool', function() {
         describe('when all limitd servers are down', function() {
           
           before(function(done) {
-            servers[2].stop(function () {
-              setTimeout(done, 300);
+            servers[2].stop(function (err) {
+              setTimeout(done, 300, err);
             });
           });
 
@@ -130,8 +131,8 @@ describe('limitd_pool', function() {
           describe('and if a limitd server gets up again', function() {
 
             before(function(done) {
-              servers[1].start(function () {
-                setTimeout(done, 300);
+              servers[1].start(function (err) {
+                setTimeout(done, 300, err);
               });
             });
 

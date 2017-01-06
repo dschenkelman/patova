@@ -16,7 +16,7 @@ function create(port) {
   
   return {
 
-    start: function(done) {
+    start: function(cb) {
       const db_file = path.join(__dirname, 'dbs', `server.${instanceNumber++}.tests.db`);
 
       try{
@@ -26,19 +26,19 @@ function create(port) {
       server = new LimitdServer(xtend({db: db_file, port: port}, require('./limitdConfig')));
 
       server.start(function (err, address) {
-        if (err) { return done(err); }
+        if (err) { return cb(err); }
 
         let client = new LimitdClient(`limitd://127.0.0.1:${port}`);
         client.once('connect', function(){
           client.disconnect();
-          done(address);
+          cb(null, address);
         });
       });
     },
 
-    stop: function (done) {
+    stop: function (cb) {
       server.once('close', function() {
-        done();
+        cb();
       });
       server.stop();
     }
@@ -51,7 +51,9 @@ exports.create = create;
 const instance = create();
 
 exports.start = function(done) {
-  return instance.start(done);
+  return instance.start(function(err, address) {
+    done(address);
+  });
 };
 
 exports.stop = function(done) {
