@@ -1,17 +1,25 @@
 'use strict';
-const expect  = require('chai').expect;
-const plugin  = require('../');
-const server  = require('./server');
+const expect       = require('chai').expect;
+const Boom         = require('boom');
+const LimitdClient = require('limitd-client');
+const plugin       = require('../');
+const server       = require('./server');
 const limitServer  = require('./limitdServer');
-const Boom    = require('boom');
 
 const EXTRACT_KEY_NOOP = () => {};
+
+function getLimitdClient(address) {
+  if (!address) {
+    address = 'limitd://10.0.0.1:8090';
+  }
+  return new LimitdClient({ hosts: [ address ] });
+}
 
 describe('options validation', () => {
   it ('should fail if event is not specified', () => {
     plugin.register(null, {
       type: 'user',
-      address: 'limitd://10.0.0.1:8090',
+      limitd: getLimitdClient(),
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
       expect(err.details).to.have.length(1);
@@ -25,7 +33,7 @@ describe('options validation', () => {
     plugin.register(null, {
       event: 'invalid',
       type: 'user',
-      address: 'limitd://10.0.0.1:8090',
+      limitd: getLimitdClient(),
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
       expect(err.details).to.have.length(1);
@@ -38,9 +46,7 @@ describe('options validation', () => {
   it ('should fail if type is not specified', () => {
     plugin.register(null, {
       event: 'onRequest',
-      address: {
-        hosts: [ { host:'10.0.0.1', port:8090 } ]
-      },
+      limitd: getLimitdClient(),
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
       expect(err.details).to.have.length(1);
@@ -54,7 +60,7 @@ describe('options validation', () => {
     plugin.register(null, {
       type: 2,
       event: 'onRequest',
-      address: 'limitd://10.0.0.1:8090',
+      limitd: getLimitdClient(),
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
       expect(err.details).to.have.length(2);
@@ -68,7 +74,7 @@ describe('options validation', () => {
     plugin.register(null, {
       type: '',
       event: 'onRequest',
-      address: 'limitd://10.0.0.1:8090',
+      limitd: getLimitdClient(),
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
       expect(err.details).to.have.length(2);
@@ -82,7 +88,7 @@ describe('options validation', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
-      address: 'limitd://10.0.0.1:8090',
+      limitd: getLimitdClient(),
       onError: 'string',
       extractKey: EXTRACT_KEY_NOOP
     }, err => {
@@ -97,7 +103,7 @@ describe('options validation', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
-      address: 'limitd://10.0.0.1:8090',
+      limitd: getLimitdClient(),
       extractKey: 'string'
     }, err => {
       expect(err.details).to.have.length(1);
@@ -111,7 +117,7 @@ describe('options validation', () => {
     plugin.register(null, {
       type: 'user',
       event: 'onRequest',
-      address: 'limitd://10.0.0.1:8090',
+      limitd: getLimitdClient()
     }, err => {
       expect(err.details).to.have.length(1);
 
@@ -120,79 +126,6 @@ describe('options validation', () => {
     });
   });
 
-  it ('should fail if address is not provided', () => {
-    plugin.register(null, {
-      type: 'user',
-      event: 'onRequest',
-      extractKey: EXTRACT_KEY_NOOP
-    }, err => {
-      expect(err.details).to.have.length(1);
-      const firstError = err.details[0];
-      expect(firstError.message).to.equal('"address" is required');
-    });
-  });
-
-  it ('should fail if address is not string', () => {
-    plugin.register(null, {
-      type: 'user',
-      event: 'onRequest',
-      extractKey: EXTRACT_KEY_NOOP,
-      address: 1
-    }, err => {
-      expect(err.details).to.have.length(4);
-    });
-  });
-
-  it ('should fail address is not uri with limitd schema', () => {
-    plugin.register(null, {
-      type: 'user',
-      event: 'onRequest',
-      extractKey: EXTRACT_KEY_NOOP,
-      address: 'https://auth0.com'
-    }, err => {
-      expect(err.details).to.have.length(4);
-    });
-  });
-
-  it ('should fail address array items lack limitd schema', () => {
-    plugin.register(null, {
-      type: 'user',
-      event: 'onRequest',
-      extractKey: EXTRACT_KEY_NOOP,
-      address: ['limitd://some', 'http://auth0.com']
-    }, err => {
-      expect(err.details).to.have.length(4);
-    });
-  });
-
-  it ('should fail address hosts objects are invalid', () => {
-    plugin.register(null, {
-      type: 'user',
-      event: 'onRequest',
-      extractKey: EXTRACT_KEY_NOOP,
-      address: {
-        hosts: [{
-          host: '10.0.0.1',
-          port: 'test?'
-        }]
-      }
-    }, err => {
-      expect(err.details).to.have.length(4);
-    });
-  });
-
-  it ('should fail address hosts array entries are invalid', () => {
-    plugin.register(null, {
-      type: 'user',
-      event: 'onRequest',
-      extractKey: EXTRACT_KEY_NOOP,
-      address: {
-        hosts: ['limitd://some', 'http://auth0.com']
-      }
-    }, err => {
-      expect(err.details).to.have.length(5);
-    });
-  });
 });
 
 describe('with server', () => {
@@ -200,7 +133,7 @@ describe('with server', () => {
     before(done => {
       server.start({ replyError: false }, {
         type: 'user',
-        address: 'limitd://10.0.0.1:8090',
+        limitd: getLimitdClient(),
         extractKey: (request, reply, done) => {
           done(Boom.internal('Failed to retrieve key'));
         },
@@ -230,9 +163,7 @@ describe('with server', () => {
     before(done => {
       server.start({ replyError: false }, {
         type: 'user',
-        address: {
-          hosts: [ 'limitd://10.0.0.1:8090' ]
-        },
+        limitd: getLimitdClient(),
         extractKey: (request, reply, done) => {
           done(null, 'notImportant');
         },
@@ -252,11 +183,11 @@ describe('with server', () => {
     });
   });
 
-  describe ('when limitd does not responsd and there is onError', () => {
+  describe ('when limitd does not respond and there is onError', () => {
     before(done => {
       server.start({ replyError: false }, {
         type: 'user',
-        address: [ 'limitd://10.0.0.1:8090' ],
+        limitd: getLimitdClient(),
         extractKey: (request, reply, done) => {
           done(null, 'notImportant');
         },
@@ -287,9 +218,7 @@ describe('with server', () => {
       before(done => {
         server.start({ replyError: false }, {
           type: (request, callback) => { callback(new Error('failed!')); },
-          address: {
-            hosts: [ { host:'10.0.0.1', port:8090 } ]
-          },
+          limitd: getLimitdClient(),
           extractKey: (request, reply, done) => {
             done(null, 'notImportant');
           },
@@ -317,8 +246,8 @@ describe('with server', () => {
     describe('and it fails with a thrown error', () => {
       before(done => {
         server.start({ replyError: false }, {
-          type: (request, callback) => { throw new Error('failed!'); },
-          address: 'limitd://10.0.0.1:8090',
+          type: () => { throw new Error('failed!'); },
+          limitd: getLimitdClient(),
           extractKey: (request, reply, done) => {
             done(null, 'notImportant');
           },
@@ -385,7 +314,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before(done => {
         server.start({ replyError: false }, {
           type: options.emptyType,
-          address: address,
+          limitd: getLimitdClient(address),
           extractKey: (request, reply, done) => { done(null, 'notImportant'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -416,7 +345,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before(done => {
         server.start({ replyError: true }, {
           type: options.emptyType,
-          address: address,
+          limitd: getLimitdClient(address),
           extractKey: (request, reply, done) => { done(null, 'notImportant'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -448,7 +377,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
     before(done => {
       server.start({ replyError: false }, {
         type: options.emptyType,
-        address: address,
+        limitd: getLimitdClient(address),
         extractKey: (request, reply) => { reply.continue(); },
         event: 'onPostAuth',
         onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -473,7 +402,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before((done) => {
         server.start({ replyError: false }, {
           type: options.usersType,
-          address: address,
+          limitd: getLimitdClient(address),
           extractKey: (request, reply, done) => { done(null, 'key'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -503,7 +432,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       before((done) => {
         server.start({ replyError: true }, {
           type: options.usersType,
-          address: address,
+          limitd: getLimitdClient(address),
           extractKey: (request, reply, done) => { done(null, 'key'); },
           event: 'onPostAuth',
           onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
@@ -539,13 +468,13 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         server.start({ replyError: false }, [
           {
             type: options.bucket3type,
-            address: address,
+            limitd: getLimitdClient(address),
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.bucket4type,
-            address: address,
+            limitd: getLimitdClient(address),
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           }
@@ -576,19 +505,19 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         server.start({ replyError: false }, [
           {
             type: options.bucket3type,
-            address: address,
+            limitd: getLimitdClient(address),
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.emptyType,
-            address: address,
+            limitd: getLimitdClient(address),
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           },
           {
             type: options.bucket3type,
-            address: address,
+            limitd: getLimitdClient(address),
             extractKey: (request, reply, done) => { done(null, 'key'); },
             event: 'onRequest'
           }
