@@ -459,6 +459,48 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         });
       });
     });
+
+    describe('and client terminates connection', () => {
+
+      let removeCount = 0;
+      const map = new Map();
+
+      const requests = {
+        get(id) {
+          return map.get(id);
+        },
+        getAndRemove(id) {
+          removeCount++;
+          return map.get(id);
+        },
+        keepWorse(request) {
+          return request;
+        }
+      };
+
+      before((done) => {
+        server.start({ replyError: false }, {
+          type: options.usersType,
+          limitd: getLimitdClient(address),
+          extractKey: (request, reply, done) => { done(null, 'key'); },
+          event: 'onPostAuth',
+          store: requests,
+          onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
+        }, done);
+      });
+
+      after(server.stop);
+
+      it('should send remove request from store', function(done){
+        const request = { method: 'POST', url: '/users', payload: { }, simulate: { close: true } };
+        const startDate = Math.floor((new Date()).getTime() / 1000);
+        server.inject(request);
+        setTimeout(function() {
+          expect(removeCount).to.equal(1);
+          done();
+        }, 10);
+      });
+    });
   });
 
   describe('when plugin is registered multiple times', function() {
