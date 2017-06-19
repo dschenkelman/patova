@@ -24,6 +24,14 @@ exports.start = function(replyOptions, pluginOptions, done){
     }
   });
 
+  server.route({
+    method: 'GET',
+    path:'/forever',
+    handler: function (request, reply) {
+      setTimeout(() => reply('created'), 1000);
+    }
+  });
+
   const allPluginOptions = Array.isArray(pluginOptions) ? pluginOptions : [ pluginOptions ];
 
   const plugins = allPluginOptions.map(pluginOptions => this.desc(pluginOptions));

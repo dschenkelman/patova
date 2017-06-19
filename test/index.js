@@ -5,6 +5,7 @@ const LimitdClient = require('limitd-client');
 const plugin       = require('../');
 const server       = require('./server');
 const limitServer  = require('./limitdServer');
+const request      = require('request');
 
 const EXTRACT_KEY_NOOP = () => {};
 
@@ -489,16 +490,28 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         }, done);
       });
 
+      beforeEach(() => removeCount = 0);
+
       after(server.stop);
 
-      it('should send remove request from store', function(done){
+      it('should remove the request from the store', function(done){
         const request = { method: 'POST', url: '/users', payload: { }, simulate: { close: true } };
-        const startDate = Math.floor((new Date()).getTime() / 1000);
         server.inject(request);
         setTimeout(function() {
           expect(removeCount).to.equal(1);
           done();
         }, 10);
+      });
+
+      it('should remove the request from the store (http test)', function(done) {
+        const req = request.get('http://localhost:3001/forever');
+        setTimeout(function() {
+          req.abort();
+          setTimeout(() => {
+            expect(removeCount).to.equal(1);
+            done();
+          }, 1500);
+        }, 200);
       });
     });
   });
