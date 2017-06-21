@@ -461,8 +461,9 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       });
     });
 
-    describe('and client terminates connection', () => {
+    describe('and clean up connections map', () => {
 
+      let replyOptions = { replyError: false };
       let removeCount = 0;
       const map = new Map();
 
@@ -480,7 +481,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       };
 
       before((done) => {
-        server.start({ replyError: false }, {
+        server.start(replyOptions, {
           type: options.usersType,
           limitd: getLimitdClient(address),
           extractKey: (request, reply, done) => { done(null, 'key'); },
@@ -490,7 +491,10 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
         }, done);
       });
 
-      beforeEach(() => removeCount = 0);
+      beforeEach(() => {
+        removeCount = 0;
+        replyOptions.replyError = false;
+      });
 
       after(server.stop);
 
@@ -501,6 +505,16 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
           expect(removeCount).to.equal(1);
           done();
         }, 10);
+      });
+
+      it('should remove the request from the store in client errors', function(done){
+        replyOptions.replyError = true;
+        const request = { method: 'POST', url: '/users', payload: { } };
+        server.inject(request);
+        setTimeout(function() {
+          expect(removeCount).to.equal(1);
+          done();
+        }, 100);
       });
 
       it('should remove the request from the store (http test)', function(done) {
