@@ -16,6 +16,18 @@ function getLimitdClient(address) {
   return new LimitdClient({ hosts: [ address ] });
 }
 
+function PromInject (req, cb) {
+  return new Promise((resolve, reject) => {
+    server.inject(req, (res) => {
+      try {
+        resolve(cb(res));
+      } catch(e) {
+        reject(e);
+      }
+    })
+  })
+}
+
 describe('options validation', () => {
   it ('should fail if event is not specified', () => {
     plugin.register(null, {
@@ -144,10 +156,10 @@ describe('with server', () => {
 
     after(server.stop);
 
-    it ('should send response with error', done => {
+    it ('should send response with error', () => {
       const request = { method: 'POST', url: '/users', payload: { } };
 
-      server.inject(request, res => {
+      return PromInject(request, res => {
         const body = JSON.parse(res.payload);
 
         expect(res.statusCode).to.equal(500);
@@ -155,7 +167,6 @@ describe('with server', () => {
         expect(body.error).to.equal('Internal Server Error');
         expect(body.message).to.equal('An internal server error occurred');
 
-        done();
       });
     });
   });
@@ -173,13 +184,12 @@ describe('with server', () => {
     });
 
     after(server.stop);
-    it('should return 200', done => {
+    it('should return 200', () => {
       const request = { method: 'POST', url: '/users', payload: { } };
-      server.inject(request, res => {
+      return PromInject(request, res => {
         expect(res.statusCode).to.equal(200);
         expect(res.payload).to.equal('created');
 
-        done();
       });
     });
   });
@@ -198,9 +208,9 @@ describe('with server', () => {
     });
 
     after(server.stop);
-    it('should return what onError returns', done => {
+    it('should return what onError returns', () => {
       const request = { method: 'POST', url: '/users', payload: { } };
-      server.inject(request, res => {
+      return PromInject(request, res => {
         const body = JSON.parse(res.payload);
 
         expect(res.statusCode).to.equal(500);
@@ -208,7 +218,6 @@ describe('with server', () => {
         expect(body.error).to.equal('Internal Server Error');
         expect(body.message).to.equal('An internal server error occurred');
 
-        done();
       });
     });
   });
@@ -228,10 +237,10 @@ describe('with server', () => {
       });
       after(server.stop);
 
-      it ('should send response with error', done => {
+      it ('should send response with error', () => {
         const request = { method: 'POST', url: '/users', payload: { } };
 
-        server.inject(request, res => {
+        return PromInject(request, res => {
           const body = JSON.parse(res.payload);
 
           expect(res.statusCode).to.equal(500);
@@ -239,7 +248,6 @@ describe('with server', () => {
           expect(body.error).to.equal('Internal Server Error');
           expect(body.message).to.equal('An internal server error occurred');
 
-          done();
         });
       });
     });
@@ -257,10 +265,10 @@ describe('with server', () => {
       });
       after(server.stop);
 
-      it ('should send response with error', done => {
+      it ('should send response with error', () => {
         const request = { method: 'POST', url: '/users', payload: { } };
 
-        server.inject(request, res => {
+        return PromInject(request, res => {
           const body = JSON.parse(res.payload);
 
           expect(res.statusCode).to.equal(500);
@@ -268,7 +276,6 @@ describe('with server', () => {
           expect(body.error).to.equal('Internal Server Error');
           expect(body.message).to.equal('An internal server error occurred');
 
-          done();
         });
       });
     });
@@ -324,20 +331,17 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
       after(server.stop);
 
-      it('should send response with 429 and headers', done => {
+      it('should send response with 429 and headers', () => {
         const request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, res => {
+        return PromInject(request, res => {
           const body = JSON.parse(res.payload);
           const headers = res.headers;
-
           expect(body.statusCode).to.equal(429);
           expect(body.error).to.equal('Too Many Requests');
 
           expect(headers['x-ratelimit-limit']).to.equal(0);
           expect(headers['x-ratelimit-remaining']).to.equal(0);
           expect(headers['x-ratelimit-reset']).to.equal(0);
-
-          done();
         });
       });
     });
@@ -355,9 +359,9 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
       after(server.stop);
 
-      it('should send response with 429 and headers', done => {
+      it('should send response with 429 and headers', () => {
         const request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, res => {
+        return PromInject(request, res => {
           const body = JSON.parse(res.payload);
           const headers = res.headers;
 
@@ -368,7 +372,6 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
           expect(headers['x-ratelimit-remaining']).to.equal(0);
           expect(headers['x-ratelimit-reset']).to.equal(0);
 
-          done();
         });
       });
     });
@@ -387,13 +390,12 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
     after(server.stop);
 
-    it('should send response with 200', done => {
+    it('should send response with 200', () => {
       const request = { method: 'POST', url: '/users', payload: { } };
-      server.inject(request, res => {
+      return PromInject(request, res => {
         expect(res.statusCode).to.equal(200);
         expect(res.payload).to.equal('created');
 
-        done();
       });
     });
   });
@@ -412,10 +414,10 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
       after(server.stop);
 
-      it('should send response with 200 if limit is not passed and set limit header', function(done){
+      it('should send response with 200 if limit is not passed and set limit header', () =>{
         const request = { method: 'POST', url: '/users', payload: { } };
         const startDate = Math.floor((new Date()).getTime() / 1000);
-        server.inject(request, res => {
+        return PromInject(request, res => {
           expect(res.statusCode).to.equal(200);
           expect(res.payload).to.equal('created');
 
@@ -424,7 +426,6 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
           expect(headers['x-ratelimit-remaining']).to.equal(999999);
           expect(headers['x-ratelimit-reset']).to.be.greaterThan(startDate);
 
-          done();
         });
       });
     });
@@ -442,10 +443,10 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
       after(server.stop);
 
-      it('should send response with 403 if limit is not passed and set limit header', function(done){
+      it('should send response with 403 if limit is not passed and set limit header', () => {
         const request = { method: 'POST', url: '/users', payload: { } };
         const startDate = Math.floor((new Date()).getTime() / 1000);
-        server.inject(request, res => {
+        return PromInject(request, res => {
           const body = JSON.parse(res.payload);
           const headers = res.headers;
 
@@ -456,7 +457,6 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
           expect(headers['x-ratelimit-remaining']).to.equal(999999);
           expect(headers['x-ratelimit-reset']).to.be.greaterThan(startDate);
 
-          done();
         });
       });
     });
@@ -484,10 +484,10 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
       after(server.stop);
 
-      it('should send response with 200 if limit is not passed and set limit header to the lowest remaining limit', function(done){
+      it('should send response with 200 if limit is not passed and set limit header to the lowest remaining limit', () => {
         const request = { method: 'POST', url: '/users', payload: { } };
         const startDate = Math.floor((new Date()).getTime() / 1000);
-        server.inject(request, res => {
+        return PromInject(request, res => {
           expect(res.statusCode).to.equal(200);
           expect(res.payload).to.equal('created');
 
@@ -495,8 +495,6 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
           expect(headers['x-ratelimit-limit']).to.equal(3);
           expect(headers['x-ratelimit-remaining']).to.equal(2);
           expect(headers['x-ratelimit-reset']).to.be.greaterThan(startDate);
-
-          done();
         });
       });
     });
@@ -527,9 +525,9 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
 
       after(server.stop);
 
-      it('should send response with 429 if limit has passed for some plugin configuration and set limit header', function(done){
+      it('should send response with 429 if limit has passed for some plugin configuration and set limit header', () => {
         const request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, res => {
+        return PromInject(request, res => {
           const body = JSON.parse(res.payload);
           const headers = res.headers;
 
@@ -540,7 +538,6 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
           expect(headers['x-ratelimit-remaining']).to.equal(0);
           expect(headers['x-ratelimit-reset']).to.equal(0);
 
-          done();
         });
       });
     });

@@ -13,7 +13,7 @@ function create(port) {
   port = port || 9001;
 
   let server;
-  
+
   return {
 
     start: function(cb) {
@@ -23,7 +23,9 @@ function create(port) {
         rimraf.sync(db_file);
       } catch(err){}
 
-      server = new LimitdServer(xtend({db: db_file, port: port}, require('./limitdConfig')));
+      const conf = require('./limitdConfig');
+      conf.db = db_file;
+      server = new LimitdServer(xtend({db: db_file, port: port}, conf));
 
       server.start(function (err, address) {
         if (err) { return cb(err); }
