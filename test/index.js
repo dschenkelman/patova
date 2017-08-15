@@ -171,7 +171,7 @@ describe('with server', () => {
     });
   });
 
-  describe ('when limitd does not provide a response and there is no onError',function(){
+  describe ('when limitd does not provide a response and there is no onError', () => {
     before(done => {
       server.start({ replyError: false }, {
         type: 'user',
@@ -400,8 +400,220 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
     });
   });
 
+  describe('when plugin is disabled by default', () => {
+    before(done => {
+      server.start({ replyError: false }, {
+        type: options.emptyType,
+        limitd: getLimitdClient(address),
+        extractKey: (request, reply, done) => { done(null, 'notImportant'); },
+        event: 'onPostAuth',
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); },
+        enabled: false
+      }, done);
+    });
+
+    after(server.stop);
+
+    it('should send response with 200 for default routes', () => {
+      const request = { method: 'POST', url: '/users', payload: { } };
+      return PromInject(request, res => {
+        expect(res.statusCode).to.equal(200);
+        expect(res.payload).to.equal('created');
+
+      });
+    });
+
+    it('should send response with 200 if route explicitly disables patova', () => {
+      const request = { method: 'POST', url: '/no_limit', payload: { } };
+      return PromInject(request, res => {
+        expect(res.statusCode).to.equal(200);
+        expect(res.payload).to.equal('created');
+
+      });
+    });
+
+    it('should send response with 429 if route has patova settings', () => {
+      const request = { method: 'POST', url: '/empty', payload: { } };
+      return PromInject(request, res => {
+        const body = JSON.parse(res.payload);
+        const headers = res.headers;
+
+        expect(res.statusCode).to.equal(429);
+        expect(body.error).to.equal('Too Many Requests');
+
+        expect(headers['x-ratelimit-limit']).to.equal(0);
+        expect(headers['x-ratelimit-remaining']).to.equal(0);
+        expect(headers['x-ratelimit-reset']).to.equal(0);
+
+      });
+    });
+
+    it('should send response with 429 if route explicitly enables patova', () => {
+      const request = { method: 'POST', url: '/always_limit', payload: { } };
+      return PromInject(request, res => {
+        const body = JSON.parse(res.payload);
+        const headers = res.headers;
+
+        expect(res.statusCode).to.equal(429);
+        expect(body.error).to.equal('Too Many Requests');
+
+        expect(headers['x-ratelimit-limit']).to.equal(0);
+        expect(headers['x-ratelimit-remaining']).to.equal(0);
+        expect(headers['x-ratelimit-reset']).to.equal(0);
+
+      });
+    });
+  });
+
+  describe('when routes overrides default type settings', () => {
+    before(done => {
+      server.start({ replyError: false }, {
+        type: options.usersType,
+        limitd: getLimitdClient(address),
+        extractKey: (request, reply, done) => { done(null, 'key'); },
+        event: 'onPostAuth',
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
+      }, done);
+    });
+
+    after(server.stop);
+
+    it('should use route type', () => {
+      const request = { method: 'POST', url: '/empty', payload: { } };
+      return PromInject(request, res => {
+        const body = JSON.parse(res.payload);
+        const headers = res.headers;
+
+        expect(res.statusCode).to.equal(429);
+        expect(body.error).to.equal('Too Many Requests');
+
+        expect(headers['x-ratelimit-limit']).to.equal(0);
+        expect(headers['x-ratelimit-remaining']).to.equal(0);
+        expect(headers['x-ratelimit-reset']).to.equal(0);
+
+      });
+    });
+  });
+
+  describe('when routes overrides default enable settings', () => {
+
+    before(done => {
+      server.start({ replyError: false }, {
+        type: options.emptyType,
+        limitd: getLimitdClient(address),
+        extractKey: (request, reply, done) => { done(null, 'key'); },
+        event: 'onPostAuth',
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
+      }, done);
+    });
+
+    after(server.stop);
+
+    it('should not be enabled for disabled routes', () => {
+      const request = { method: 'POST', url: '/no_limit', payload: { } };
+      return PromInject(request, res => {
+        expect(res.statusCode).to.equal(200);
+        expect(res.payload).to.equal('created');
+
+      });
+    });
+  });
+
+  describe('when routes headers are disabled', () => {
+
+    before(done => {
+      server.start({ replyError: false }, {
+        type: options.usersType,
+        limitd: getLimitdClient(address),
+        extractKey: (request, reply, done) => { done(null, 'key'); },
+        event: 'onPostAuth',
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); },
+        sendResponseHeaders: false
+      }, done);
+    });
+
+    after(server.stop);
+
+    it('should not send headers', () => {
+      const request = { method: 'POST', url: '/empty', payload: { } };
+      return PromInject(request, res => {
+        const headers = res.headers;
+
+        expect(headers).to.not.have.property('x-ratelimit-limit');
+        expect(headers).to.not.have.property('x-ratelimit-remaining');
+        expect(headers).to.not.have.property('x-ratelimit-reset');
+      });
+    });
+
+    it('should send headers when route explicitly enables them', () => {
+      const request = { method: 'POST', url: '/always_headers', payload: { } };
+      return PromInject(request, res => {
+        const headers = res.headers;
+
+        expect(headers).to.have.property('x-ratelimit-limit');
+        expect(headers).to.have.property('x-ratelimit-remaining');
+        expect(headers).to.have.property('x-ratelimit-reset');
+      });
+    });
+
+    it('should not send headers when route explicitly disables them', () => {
+      const request = { method: 'POST', url: '/no_headers', payload: { } };
+      return PromInject(request, res => {
+        const headers = res.headers;
+
+        expect(headers).to.not.have.property('x-ratelimit-limit');
+        expect(headers).to.not.have.property('x-ratelimit-remaining');
+        expect(headers).to.not.have.property('x-ratelimit-reset');
+      });
+    });
+  });
+
+  describe('when caching route settings', () => {
+
+    before(done => {
+      server.start({ replyError: false }, {
+        type: options.usersType,
+        limitd: getLimitdClient(address),
+        extractKey: (request, reply, done) => { done(null, 'key'); },
+        event: 'onPostAuth',
+        onError: (err, reply) => { reply(Boom.wrap(err, 500)); }
+      }, done);
+    });
+
+    after(server.stop);
+
+    it('should respect route settings on multiple calls', () => {
+      const request = { method: 'POST', url: '/empty', payload: { } };
+      return PromInject(request, res => {
+        const body = JSON.parse(res.payload);
+        const headers = res.headers;
+
+        expect(res.statusCode).to.equal(429);
+        expect(body.error).to.equal('Too Many Requests');
+
+        expect(headers['x-ratelimit-limit']).to.equal(0);
+        expect(headers['x-ratelimit-remaining']).to.equal(0);
+        expect(headers['x-ratelimit-reset']).to.equal(0);
+      }).then(() => {
+        const request = { method: 'POST', url: '/empty', payload: { } };
+        return PromInject(request, res => {
+          const body = JSON.parse(res.payload);
+          const headers = res.headers;
+
+          expect(res.statusCode).to.equal(429);
+          expect(body.error).to.equal('Too Many Requests');
+
+          expect(headers['x-ratelimit-limit']).to.equal(0);
+          expect(headers['x-ratelimit-remaining']).to.equal(0);
+          expect(headers['x-ratelimit-reset']).to.equal(0);
+        });
+      });
+    });
+  });
+
   describe('when limitd responds conformant', () => {
     describe('and request response is normal', () => {
+
       before((done) => {
         server.start({ replyError: false }, {
           type: options.usersType,
@@ -431,6 +643,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
     });
 
     describe('and request response is an error', () => {
+
       before((done) => {
         server.start({ replyError: true }, {
           type: options.usersType,
@@ -500,6 +713,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
     });
 
     describe('when limitd responds not conformant', () => {
+
       before((done) => {
         server.start({ replyError: false }, [
           {
