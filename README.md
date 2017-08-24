@@ -21,7 +21,7 @@ server.register({
     event: 'onPostAuth',
     type: 'users',
     limitd: limitdClient,
-    extractKey: function(request, reply, done){
+    extractKey: function(request, reply, done) {
       var key = request.auth.credentials.userId;
       done(null, key);
     }
@@ -44,10 +44,13 @@ The object has the following schema (validated [here](./lib/index.js) using [Joi
   * `done: (err: Error, key: String)` - A function that takes an error as the first parameter and the bucket key as the second parameter.
 
 **Optional**
+* `enabled: Boolean default(true)` - if true rate limiting will be enabled for all routes. Setting this `false` will only rate limit routes which have the plugin defined
+* `sendResponseHeaders: Boolean default(true)` - if `true` rate limiting headers will be sent with response
 * `onError: (error, reply) => ()` - A function that takes the `error` that occurred when trying to get a token from the bucket and the `reply` interface.
   * `error: Error` - The error that occurred.
   * `reply: Reply` - The hapi.js [reply interface](http://hapijs.com/api#reply-interface).
   > If an error occurs and no function is provided, the request lifecycle continues normally as if there was no token bucket restriction. This is a useful default behavior in case the limitd server goes down.
+
 
 ## Contributing
 Feel free to open issues with questions/bugs/features. PRs are also welcome.
