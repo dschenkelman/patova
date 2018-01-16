@@ -37,6 +37,6 @@
     "xtend": "^4.0.0"
   },
   "peerDependencies": {
-    "hapi": ">=11.x.x <=16.x.x"
+    "hapi": ">=17.x.x"
   }
 }
