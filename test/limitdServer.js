@@ -13,7 +13,7 @@ function create(port) {
   port = port || 9001;
 
   let server;
-  
+
   return {
 
     start: function(cb) {

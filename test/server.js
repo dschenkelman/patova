@@ -4,56 +4,42 @@ var Boom = require('boom');
 
 var server;
 
-exports.start = function(replyOptions, pluginOptions, done){
-  server = new Hapi.Server();
-
-  server.connection({
+exports.start = async function(replyOptions, pluginOptions){
+  server = new Hapi.Server({
     host: 'localhost',
     port: 3001,
   });
 
   server.route({
     method: 'POST',
-    path:'/users',
-    handler: function (request, reply) {
+    path: '/users',
+    handler: () => {
       if (replyOptions.replyError) {
-        reply(Boom.forbidden('You cannot access Zion'));
-      } else {
-        reply('created');
+        throw Boom.forbidden('You cannot access Zion');
       }
+
+      return 'created';
     }
   });
 
   server.route({
     method: 'GET',
-    path:'/forever',
-    handler: function (request, reply) {
-      setTimeout(() => reply('created'), 1000);
-    }
+    path: '/forever',
+    handler: () => new Promise((resolve) => setTimeout(resolve, 1000, 'created'))
   });
 
   const allPluginOptions = Array.isArray(pluginOptions) ? pluginOptions : [ pluginOptions ];
 
-  const plugins = allPluginOptions.map(pluginOptions => this.desc(pluginOptions));
+  const plugins = allPluginOptions.map(options => ({ plugin, options }));
 
-  server.register(plugins, err => {
-    if (err) { throw err; }
-
-    server.start(done);
-  });
-};
-
-exports.desc = function(pluginOptions) {
-  return {
-    register: plugin,
-    options: pluginOptions,
-  };
+  await server.register(plugins);
+  return await server.start();
 };
 
 exports.inject = function(){
-  server.inject.apply(server, Array.prototype.slice.call(arguments, 0));
+  return server.inject.apply(server, Array.prototype.slice.call(arguments, 0));
 };
 
-exports.stop = function(done){
-  server.stop(done);
+exports.stop = function(){
+  return server.stop();
 };

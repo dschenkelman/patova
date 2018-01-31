@@ -23,14 +23,14 @@
   "dependencies": {
     "boom": "^2.6.1",
     "joi": "^7.0.1",
-    "limitd-client": "^2.6.2"
+    "limitd-client": "^2.13.2"
   },
   "devDependencies": {
     "async": "^2.1.4",
     "chai": "^2.1.0",
-    "hapi": "^15.2.0",
+    "hapi": "^17.0.0",
     "js-yaml": "^3.2.7",
-    "limitd": "^4.20.1",
+    "limitd": "^5.5.1",
     "mocha": "^2.1.0",
     "request": "^2.81.0",
     "rimraf": "^2.3.1",
@@ -38,5 +38,8 @@
   },
   "peerDependencies": {
     "hapi": ">=17.x.x"
+  },
+  "engines": {
+    "node": ">=8.1.4"
   }
 }
