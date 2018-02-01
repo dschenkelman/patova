@@ -23,7 +23,7 @@ describe('options validation', () => {
         limitd: getLimitdClient(),
         extractKey: EXTRACT_KEY_NOOP
       });
-      expect(false, 'this should not be reached').to.be.true;
+      expect.fail('should have thrown');
     } catch (err) {
       expect(err.details).to.have.length(1);
 
@@ -40,7 +40,7 @@ describe('options validation', () => {
         limitd: getLimitdClient(),
         extractKey: EXTRACT_KEY_NOOP
       });
-      expect(false, 'this should not be reached').to.be.true;
+      expect.fail('should have thrown');
     } catch (err) {
       expect(err.details).to.have.length(1);
 
@@ -56,7 +56,7 @@ describe('options validation', () => {
         limitd: getLimitdClient(),
         extractKey: EXTRACT_KEY_NOOP
       });
-      expect(false, 'this should not be reached').to.be.true;
+      expect.fail('should have thrown');
     } catch (err) {
       expect(err.details).to.have.length(1);
 
@@ -73,7 +73,7 @@ describe('options validation', () => {
         limitd: getLimitdClient(),
         extractKey: EXTRACT_KEY_NOOP
       });
-      expect(false, 'this should not be reached').to.be.true;
+      expect.fail('should have thrown');
     } catch (err) {
       expect(err.details).to.have.length(2);
 
@@ -90,7 +90,7 @@ describe('options validation', () => {
         limitd: getLimitdClient(),
         extractKey: EXTRACT_KEY_NOOP
       });
-      expect(false, 'this should not be reached').to.be.true;
+      expect.fail('should have thrown');
     } catch (err) {
       expect(err.details).to.have.length(2);
 
@@ -108,7 +108,7 @@ describe('options validation', () => {
         onError: 'string',
         extractKey: EXTRACT_KEY_NOOP
       });
-      expect(false, 'this should not be reached').to.be.true;
+      expect.fail('should have thrown');
     } catch (err) {
       expect(err.details).to.have.length(1);
 
@@ -125,7 +125,7 @@ describe('options validation', () => {
         limitd: getLimitdClient(),
         extractKey: 'string'
       });
-      expect(false, 'this should not be reached').to.be.true;
+      expect.fail('should have thrown');
     } catch (err) {
       expect(err.details).to.have.length(1);
 
@@ -141,7 +141,7 @@ describe('options validation', () => {
         event: 'onRequest',
         limitd: getLimitdClient(),
       });
-      expect(false, 'this should not be reached').to.be.true;
+      expect.fail('should have thrown');
     } catch (err) {
       expect(err.details).to.have.length(1);
 
