@@ -361,7 +361,7 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
     });
   });
 
-  describe('when check is skipped', () => {
+  describe('when check is skipped in extractKey', () => {
     before(() => server.start({ replyError: false }, {
       type: options.emptyType,
       limitd: getLimitdClient(address),
@@ -379,6 +379,26 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       expect(res.payload).to.equal('created');
     });
   });
+
+  describe('when check is skipped in type', () => {
+    before(() => server.start({ replyError: false }, {
+      type: (request, flowControl) => Promise.resolve(flowControl.continue),
+      limitd: getLimitdClient(address),
+      extractKey: () => Promise.resolve('key'),
+      event: 'onPostAuth',
+      onError: (err) => Boom.wrap(err, 500)
+    }));
+
+    after(server.stop);
+
+    it('should send response with 200', async () => {
+      const request = { method: 'POST', url: '/users', payload: { } };
+      const res = await server.inject(request)
+      expect(res.statusCode).to.equal(200);
+      expect(res.payload).to.equal('created');
+    });
+  });
+
   describe('when limitd responds conformant', () => {
     describe('and request response is normal', () => {
       before(() => server.start({ replyError: false }, {

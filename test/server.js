@@ -36,8 +36,8 @@ exports.start = async function(replyOptions, pluginOptions){
   return await server.start();
 };
 
-exports.inject = function(){
-  return server.inject.apply(server, Array.prototype.slice.call(arguments, 0));
+exports.inject = function(... rest){
+  return server.inject.apply(server, rest);
 };
 
 exports.stop = function(){
