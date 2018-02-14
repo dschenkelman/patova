@@ -25,7 +25,7 @@ await server.register({
 });
 ```
 
-## Options (Hapi <= 17)
+## Options (Hapi >= 17)
 The object has the following schema (validated [here](./lib/index.js) using [Joi](https://github.com/hapijs/joi)):
 
 **Required**
