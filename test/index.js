@@ -127,6 +127,20 @@ describe('options validation', () => {
     });
   });
 
+  it ('should fail if limitResponseHandler is not a function', () => {
+    plugin.register(null, {
+      type: 'user',
+      event: 'onRequest',
+      limitd: getLimitdClient(),
+      limitResponseHandler: 'string',
+      extractKey: EXTRACT_KEY_NOOP
+    }, err => {
+      expect(err.details).to.have.length(1);
+
+      const firstError = err.details[0];
+      expect(firstError.message).to.equal('"limitResponseHandler" must be a Function');
+    });
+  });
 });
 
 describe('with server', () => {
@@ -502,45 +516,87 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
     });
 
     describe('when limitd responds not conformant', () => {
-      before((done) => {
-        server.start({ replyError: false }, [
-          {
-            type: options.bucket3type,
-            limitd: getLimitdClient(address),
-            extractKey: (request, reply, done) => { done(null, 'key'); },
-            event: 'onRequest'
-          },
-          {
-            type: options.emptyType,
-            limitd: getLimitdClient(address),
-            extractKey: (request, reply, done) => { done(null, 'key'); },
-            event: 'onRequest'
-          },
-          {
-            type: options.bucket3type,
-            limitd: getLimitdClient(address),
-            extractKey: (request, reply, done) => { done(null, 'key'); },
-            event: 'onRequest'
-          }
-        ], done);
+      describe('and when limitResponseHandler is not provided', () => {
+        before((done) => {
+          server.start({ replyError: false }, [
+            {
+              type: options.bucket3type,
+              limitd: getLimitdClient(address),
+              extractKey: (request, reply, done) => { done(null, 'key'); },
+              event: 'onRequest'
+            },
+            {
+              type: options.emptyType,
+              limitd: getLimitdClient(address),
+              extractKey: (request, reply, done) => { done(null, 'key'); },
+              event: 'onRequest'
+            },
+            {
+              type: options.bucket3type,
+              limitd: getLimitdClient(address),
+              extractKey: (request, reply, done) => { done(null, 'key'); },
+              event: 'onRequest'
+            }
+          ], done);
+        });
+
+        after(server.stop);
+
+        it('should send response with 429 if limit has passed for some plugin configuration and set limit header', function(done){
+          const request = { method: 'POST', url: '/users', payload: { } };
+          server.inject(request, res => {
+            const body = JSON.parse(res.payload);
+            const headers = res.headers;
+
+            expect(res.statusCode).to.equal(429);
+            expect(body.error).to.equal('Too Many Requests');
+
+            expect(headers['x-ratelimit-limit']).to.equal(0);
+            expect(headers['x-ratelimit-remaining']).to.equal(0);
+            expect(headers['x-ratelimit-reset']).to.equal(0);
+
+            done();
+          });
+        });
       });
 
-      after(server.stop);
+      describe('and when limitResponseHandler is provided', () => {
+        before((done) => {
+          server.start({ replyError: false }, [
+            {
+              type: options.bucket3type,
+              limitd: getLimitdClient(address),
+              extractKey: (request, reply, done) => { done(null, 'key'); },
+              event: 'onRequest',
+              limitResponseHandler: (result, request, reply) => reply.continue()
+            },
+            {
+              type: options.emptyType,
+              limitd: getLimitdClient(address),
+              extractKey: (request, reply, done) => { done(null, 'key'); },
+              event: 'onRequest',
+              limitResponseHandler: (result, request, reply) => reply.continue()
+            },
+            {
+              type: options.bucket3type,
+              limitd: getLimitdClient(address),
+              extractKey: (request, reply, done) => { done(null, 'key'); },
+              event: 'onRequest',
+              limitResponseHandler: (result, request, reply) => reply.continue()
+            }
+          ], done);
+        });
 
-      it('should send response with 429 if limit has passed for some plugin configuration and set limit header', function(done){
-        const request = { method: 'POST', url: '/users', payload: { } };
-        server.inject(request, res => {
-          const body = JSON.parse(res.payload);
-          const headers = res.headers;
+        after(server.stop);
 
-          expect(res.statusCode).to.equal(429);
-          expect(body.error).to.equal('Too Many Requests');
+        it('should call limitResponseHandler to handle the answer', function(done){
+          const request = { method: 'POST', url: '/users', payload: { } };
+          server.inject(request, res => {
+            expect(res.statusCode).to.equal(200);
+            expect(res.payload).to.eql('created')
 
-          expect(headers['x-ratelimit-limit']).to.equal(0);
-          expect(headers['x-ratelimit-remaining']).to.equal(0);
-          expect(headers['x-ratelimit-reset']).to.equal(0);
-
-          done();
+            done();
+          });
         });
       });
     });
