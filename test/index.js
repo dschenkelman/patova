@@ -561,6 +561,8 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
       });
 
       describe('and when limitResponseHandler is provided', () => {
+        let callParams = [];
+
         before((done) => {
           server.start({ replyError: false }, [
             {
@@ -568,32 +570,75 @@ function itBehavesLikeWhenLimitdIsRunning(options) {
               limitd: getLimitdClient(address),
               extractKey: (request, reply, done) => { done(null, 'key'); },
               event: 'onRequest',
-              limitResponseHandler: (result, request, reply) => reply.continue()
+              limitResponseHandler: (result, request, reply) => {
+                callParams.push(result);
+
+                reply.continue()
+              }
             },
             {
               type: options.emptyType,
               limitd: getLimitdClient(address),
               extractKey: (request, reply, done) => { done(null, 'key'); },
               event: 'onRequest',
-              limitResponseHandler: (result, request, reply) => reply.continue()
+              limitResponseHandler: (result, request, reply) => {
+                callParams.push(result);
+
+                reply.continue();
+              }
             },
             {
               type: options.bucket3type,
               limitd: getLimitdClient(address),
               extractKey: (request, reply, done) => { done(null, 'key'); },
               event: 'onRequest',
-              limitResponseHandler: (result, request, reply) => reply.continue()
+              limitResponseHandler: (result, request, reply) => {
+                callParams.push(result);
+
+                reply.continue()
+              }
             }
           ], done);
         });
 
         after(server.stop);
 
+        it('should call each handler a single time', (done) => {
+          const request = { method: 'POST', url: '/users', payload: { } };
+          server.inject(request, res => {
+            expect(callParams.length).to.equal(3);
+
+            done();
+          });
+        });
+
+        it('should call each handler with their own result', (done) => {
+          const request = { method: 'POST', url: '/users', payload: { } };
+          server.inject(request, res => {
+            expect(callParams[0].limit).to.equal(3);
+            expect(callParams[1].limit).to.equal(0);
+            expect(callParams[2].limit).to.equal(3);
+
+            done();
+          });
+        });
+
         it('should call limitResponseHandler to handle the answer', function(done){
           const request = { method: 'POST', url: '/users', payload: { } };
           server.inject(request, res => {
             expect(res.statusCode).to.equal(200);
-            expect(res.payload).to.eql('created')
+            expect(res.payload).to.eql('created');
+
+            done();
+          });
+        });
+
+        it('should return non-conformant values as the minimum when they apply', function(done){
+          const request = { method: 'POST', url: '/users', payload: { } };
+          server.inject(request, res => {
+            expect(res.headers['x-ratelimit-limit']).to.equal(0);
+            expect(res.headers['x-ratelimit-remaining']).to.equal(0);
+            expect(res.headers['x-ratelimit-reset']).to.equal(0);
 
             done();
           });
